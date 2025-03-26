@@ -1,235 +1,341 @@
 'use client';
 
-import React, { useState } from 'react';
-import Image from 'next/image';
-import { Search } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Clock, BarChart2, TrendingUp, Bookmark, Filter } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 
-interface PowerBIReport {
-    id: string;
-    name: string;
-    embedUrl: string;
-    type: 'report' | 'dashboard';
-    thumbnail?: string;
-    description?: string;
-    createdAt: string;
-    workspace: string;
-    category?: string;
-    date?: string;
-    imagePath?: string;
-    title?: string;
-}
-
+// Definição de tipos
 interface Dashboard {
-    id: number;
-    title: string;
-    type: string;
-    description: string;
-    category: string;
-    date: string;
-    imagePath: string;
+  id: string;
+  title: string;
+  category: 'business' | 'marketing' | 'finance' | 'operations';
+  type: 'Dashboard' | 'Relatório';
+  description: string;
+  lastUpdated: string;
+  isFavorite: boolean;
+  thumbnail?: string;
+  isNew: boolean;
 }
 
-interface DashboardCardProps {
-    title: string;
-    type: string;
-    description: string;
-    category: string;
-    date: string;
-    imagePath?: string;
-}
+const EnhancedDashboard: React.FC = () => {
+  const [dashboards, setDashboards] = useState<Dashboard[]>([]);
+  const [filter, setFilter] = useState<string>('');
+  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-// Componente para card individual
-const DashboardCard: React.FC<DashboardCardProps> = ({ title, type, description, category, date, imagePath }) => {
-    return (
-        <div className="bg-white rounded-md shadow-sm hover:shadow-md transition-shadow">
-            <div className="h-32 relative bg-gray-100 rounded-t-md overflow-hidden">
-                {/* Imagem placeholder ou real */}
-                {imagePath ? (
-                    <Image
-                        src={imagePath}
-                        alt={title}
-                        width={500}
-                        height={300}
-                        className="object-cover w-full h-full"
-                    />
-                ) : (
-                    <div className="flex items-center justify-center h-full w-full text-gray-400">
-                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                            <polyline points="21 15 16 10 5 21"></polyline>
-                        </svg>
-                    </div>
-                )}
-            </div>
-
-            <div className="p-4">
-                <h3 className="font-medium text-gray-900 mb-1">{title}</h3>
-                <div className="mb-2">
-                    <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded ${type === 'Dashboard'
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-orange-100 text-orange-800'
-                        }`}>
-                        {type}
-                    </span>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">{description}</p>
-                <div className="flex justify-between text-xs text-gray-500">
-                    <span>{category}</span>
-                    <span>{date}</span>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const DashboardsPage: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<string>('todos');
-    const [searchQuery, setSearchQuery] = useState<string>('');
-
-    // Dados de exemplo para os dashboards
-    const dashboards: Dashboard[] = [
+  // Simulando carregamento de dados
+  useEffect(() => {
+    // Aqui seria a chamada API real
+    setTimeout(() => {
+      setDashboards([
         {
-            id: 1,
-            title: 'Dashboard de Vendas',
-            type: 'Dashboard',
-            description: 'Visão geral das vendas mensais e anuais',
-            category: 'Vendas',
-            date: '14/03/2025',
-            imagePath: '/placeholder-dashboard.png' // Substitua por seus caminhos reais de imagem
+          id: '1',
+          title: 'Dashboard de Vendas',
+          category: 'business',
+          type: 'Dashboard',
+          description: 'Visão geral das vendas mensais e anuais',
+          lastUpdated: '14/03/2025',
+          isFavorite: true,
+          thumbnail: '/dashboard-vendas.jpg',
+          isNew: false
         },
         {
-            id: 2,
-            title: 'Análise de Marketing',
-            type: 'Relatório',
-            description: 'Métricas de campanhas de marketing e ROI',
-            category: 'Marketing',
-            date: '09/03/2025',
-            imagePath: '/placeholder-dashboard.png'
+          id: '2',
+          title: 'Análise de Marketing',
+          category: 'marketing',
+          type: 'Relatório',
+          description: 'Métricas de campanhas de marketing e ROI',
+          lastUpdated: '09/03/2025',
+          isFavorite: true,
+          thumbnail: '/marketing-analytics.jpg',
+          isNew: true
         },
         {
-            id: 3,
-            title: 'KPIs Financeiros',
-            type: 'Dashboard',
-            description: 'Indicadores-chave de performance financeira',
-            category: 'Finanças',
-            date: '04/03/2025',
-            imagePath: '/placeholder-dashboard.png'
+          id: '3',
+          title: 'KPIs Financeiros',
+          category: 'finance',
+          type: 'Dashboard',
+          description: 'Indicadores-chave de performance financeira',
+          lastUpdated: '04/03/2025',
+          isFavorite: false,
+          thumbnail: '/kpis-financeiros.jpg',
+          isNew: false
         },
         {
-            id: 4,
-            title: 'Relatório de Operações',
-            type: 'Relatório',
-            description: 'Métricas operacionais e eficiência',
-            category: 'Operações',
-            date: '27/02/2025',
-            imagePath: '/placeholder-dashboard.png'
+          id: '4',
+          title: 'Relatório de Operações',
+          category: 'operations',
+          type: 'Relatório',
+          description: 'Métricas operacionais e eficiência',
+          lastUpdated: '27/02/2025',
+          isFavorite: false,
+          thumbnail: '/relatorio-operacoes.jpg',
+          isNew: false
         }
-    ];
+      ]);
+      setIsLoading(false);
+    }, 1000);
+  }, []);
 
-    // Filtrar dashboards com base na tab selecionada e texto de busca
-    const filteredDashboards = dashboards.filter(dashboard => {
-        const matchesSearch = dashboard.title.toLowerCase().includes(searchQuery.toLowerCase());
+  // Filtrar dashboards
+  const filteredDashboards = dashboards.filter(dashboard => {
+    const matchesSearch = dashboard.title.toLowerCase().includes(filter.toLowerCase()) ||
+      dashboard.description.toLowerCase().includes(filter.toLowerCase());
+    const matchesCategory = activeCategory === 'all' || dashboard.category === activeCategory;
+    return matchesSearch && matchesCategory;
+  });
 
-        if (activeTab === 'todos') return matchesSearch;
-        if (activeTab === 'dashboards') return dashboard.type === 'Dashboard' && matchesSearch;
-        if (activeTab === 'relatorios') return dashboard.type === 'Relatório' && matchesSearch;
+  // Separar dashboards em categorias
+  const favorites = filteredDashboards.filter(d => d.isFavorite);
+  const recent = [...filteredDashboards].sort((a, b) =>
+    new Date(b.lastUpdated.split('/').reverse().join('-')).getTime() -
+    new Date(a.lastUpdated.split('/').reverse().join('-')).getTime()
+  ).slice(0, 4);
+  const newItems = filteredDashboards.filter(d => d.isNew);
 
-        return matchesSearch;
-    });
+  return (
+    <DashboardLayout>
+      <div className="px-6 py-6 max-w-7xl mx-auto">
+        {/* Cabeçalho com resumo */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Olá, Christiándeluco</h1>
 
-    return (
-        <DashboardLayout>
-            <div>
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-bold text-gray-800">Dashboards</h1>
-
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="Buscar dashboards..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-64 pl-10 pr-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <div className="absolute left-0 top-0 flex items-center pl-3 h-full">
-                            <Search size={16} className="text-gray-400" />
-                        </div>
-                    </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center">
+                <div className="rounded-full bg-blue-100 dark:bg-blue-900 p-3 mr-4">
+                  <BarChart2 size={20} className="text-blue-600 dark:text-blue-400" />
                 </div>
-
-                {/* Tabs de navegação */}
-                <div className="border-b border-gray-200 mb-6">
-                    <div className="flex space-x-8">
-                        <button
-                            onClick={() => setActiveTab('todos')}
-                            className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'todos'
-                                ? 'border-blue-500 text-blue-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                }`}
-                        >
-                            Todos
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('dashboards')}
-                            className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'dashboards'
-                                ? 'border-blue-500 text-blue-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                }`}
-                        >
-                            Dashboards
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('relatorios')}
-                            className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'relatorios'
-                                ? 'border-blue-500 text-blue-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                }`}
-                        >
-                            Relatórios
-                        </button>
-                    </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Total de Dashboards</p>
+                  <p className="text-xl font-bold text-gray-800 dark:text-white">{dashboards.length}</p>
                 </div>
-
-                {/* Grid de cards de dashboard */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {filteredDashboards.map((dashboard) => (
-                        <DashboardCard
-                            key={dashboard.id}
-                            title={dashboard.title}
-                            type={dashboard.type}
-                            description={dashboard.description}
-                            category={dashboard.category}
-                            date={dashboard.date}
-                            imagePath={dashboard.imagePath}
-                        />
-                    ))}
-                </div>
-
-                {/* Estado vazio */}
-                {filteredDashboards.length === 0 && (
-                    <div className="text-center py-12">
-                        <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400">
-                                <rect x="2" y="2" width="20" height="20" rx="2" ry="2"></rect>
-                                <path d="M9 10.3c0 .5-.2.7-.7.7H6.7c-.5 0-.7-.2-.7-.7V8.7c0-.5.2-.7.7-.7h1.6c.5 0 .7.2.7.7v1.6z"></path>
-                                <path d="M9 15.3c0 .5-.2.7-.7.7H6.7c-.5 0-.7-.2-.7-.7v-1.6c0-.5.2-.7.7-.7h1.6c.5 0 .7.2.7.7v1.6z"></path>
-                                <path d="M14 10.3c0 .5-.2.7-.7.7h-1.6c-.5 0-.7-.2-.7-.7V8.7c0-.5.2-.7.7-.7h1.6c.5 0 .7.2.7.7v1.6z"></path>
-                                <path d="M14 15.3c0 .5-.2.7-.7.7h-1.6c-.5 0-.7-.2-.7-.7v-1.6c0-.5.2-.7.7-.7h1.6c.5 0 .7.2.7.7v1.6z"></path>
-                                <path d="M19 10.3c0 .5-.2.7-.7.7h-1.6c-.5 0-.7-.2-.7-.7V8.7c0-.5.2-.7.7-.7h1.6c.5 0 .7.2.7.7v1.6z"></path>
-                                <path d="M19 15.3c0 .5-.2.7-.7.7h-1.6c-.5 0-.7-.2-.7-.7v-1.6c0-.5.2-.7.7-.7h1.6c.5 0 .7.2.7.7v1.6z"></path>
-                            </svg>
-                        </div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-1">Nenhum dashboard encontrado</h3>
-                        <p className="text-gray-500">
-                            Não foram encontrados dashboards que correspondam aos seus critérios de busca.
-                        </p>
-                    </div>
-                )}
+              </div>
             </div>
-        </DashboardLayout>
-    );
+
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center">
+                <div className="rounded-full bg-green-100 dark:bg-green-900 p-3 mr-4">
+                  <TrendingUp size={20} className="text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Taxa de Uso</p>
+                  <p className="text-xl font-bold text-gray-800 dark:text-white">87%</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center">
+                <div className="rounded-full bg-purple-100 dark:bg-purple-900 p-3 mr-4">
+                  <Clock size={20} className="text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Última Atualização</p>
+                  <p className="text-xl font-bold text-gray-800 dark:text-white">14/03</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center">
+                <div className="rounded-full bg-amber-100 dark:bg-amber-900 p-3 mr-4">
+                  <Bookmark size={20} className="text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Favoritos</p>
+                  <p className="text-xl font-bold text-gray-800 dark:text-white">{favorites.length}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Barra de busca e filtros */}
+          <div className="flex flex-col md:flex-row justify-between gap-4">
+            <div className="relative w-full md:w-96">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search size={18} className="text-gray-400" />
+              </div>
+              <input
+                type="text"
+                className="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Buscar dashboards..."
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                className={`px-4 py-2 rounded-lg ${activeCategory === 'all' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'}`}
+                onClick={() => setActiveCategory('all')}
+              >
+                Todos
+              </button>
+              <button
+                className={`px-4 py-2 rounded-lg ${activeCategory === 'business' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'}`}
+                onClick={() => setActiveCategory('business')}
+              >
+                Negócios
+              </button>
+              <button
+                className={`px-4 py-2 rounded-lg ${activeCategory === 'marketing' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'}`}
+                onClick={() => setActiveCategory('marketing')}
+              >
+                Marketing
+              </button>
+              <button
+                className={`px-4 py-2 rounded-lg ${activeCategory === 'finance' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'}`}
+                onClick={() => setActiveCategory('finance')}
+              >
+                Financeiro
+              </button>
+              <button
+                className="p-2 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600"
+              >
+                <Filter size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Seção de novidades - destaque especial */}
+        {newItems.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
+              <span className="inline-block bg-red-500 h-2 w-2 rounded-full mr-2"></span>
+              Novidades
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {newItems.map(dashboard => (
+                <div key={dashboard.id} className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg overflow-hidden shadow-md transform transition-transform hover:scale-102 relative">
+                  <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-bl-md">
+                    NOVO
+                  </div>
+                  <div className="p-6 text-white">
+                    <h3 className="text-xl font-bold mb-2">{dashboard.title}</h3>
+                    <p className="mb-4 opacity-90">{dashboard.description}</p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs opacity-80">Atualizado: {dashboard.lastUpdated}</span>
+                      <button className="bg-white text-blue-600 px-4 py-1.5 rounded-md text-sm font-medium hover:bg-gray-100">
+                        Ver agora
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Seção de favoritos */}
+        {favorites.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
+              <Bookmark size={18} className="mr-2 text-amber-500" />
+              Seus Favoritos
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {favorites.map(dashboard => (
+                <div key={dashboard.id} className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
+                  <div className="h-32 bg-gray-200 dark:bg-gray-700 relative">
+                    {dashboard.thumbnail ? (
+                      <img src={dashboard.thumbnail} alt={dashboard.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <BarChart2 size={40} className="text-gray-400 dark:text-gray-500" />
+                      </div>
+                    )}
+                    <button className="absolute top-2 right-2 text-yellow-500">
+                      <Bookmark size={18} fill="currentColor" />
+                    </button>
+                  </div>
+                  <div className="p-4">
+                    <div className="mb-2 flex items-center">
+                      <span className="text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                        {dashboard.type}
+                      </span>
+                    </div>
+                    <h3 className="font-semibold text-gray-800 dark:text-white mb-1">{dashboard.title}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-2">{dashboard.description}</p>
+                    <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+                      <span className="flex items-center">
+                        <Clock size={14} className="mr-1" />
+                        {dashboard.lastUpdated}
+                      </span>
+                      <button className="text-blue-600 dark:text-blue-400 font-medium hover:underline">
+                        Abrir
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Todos os dashboards */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            Todos os Dashboards
+          </h2>
+
+          {isLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+          ) : filteredDashboards.length === 0 ? (
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-8 text-center">
+              <p className="text-gray-600 dark:text-gray-400">Nenhum dashboard encontrado com os filtros selecionados.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredDashboards.map(dashboard => (
+                <div key={dashboard.id} className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
+                  <div className="h-40 bg-gray-200 dark:bg-gray-700 relative">
+                    {dashboard.thumbnail ? (
+                      <img src={dashboard.thumbnail} alt={dashboard.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <BarChart2 size={48} className="text-gray-400 dark:text-gray-500" />
+                      </div>
+                    )}
+                    <button className="absolute top-2 right-2 text-gray-400 hover:text-yellow-500">
+                      <Bookmark size={18} fill={dashboard.isFavorite ? "currentColor" : "none"} />
+                    </button>
+                    {dashboard.isNew && (
+                      <div className="absolute top-0 left-0 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-br-md">
+                        NOVO
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                        {dashboard.type}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {dashboard.lastUpdated}
+                      </span>
+                    </div>
+                    <h3 className="font-semibold text-gray-800 dark:text-white mb-2">{dashboard.title}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{dashboard.description}</p>
+                    <div className="flex justify-end">
+                      <button className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
+                        Visualizar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </DashboardLayout>
+  );
 };
 
-export default DashboardsPage;
+export default EnhancedDashboard;
