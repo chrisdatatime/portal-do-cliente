@@ -4,34 +4,38 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { simpleGetUser } from '@/lib/simple-auth';
-import { isAdmin } from '@/lib/simple-auth';
+import { simpleGetUser, isAdmin } from '@/lib/simple-auth';
 
-// Tipos para os itens de menu
-interface MenuItem {
-    title: string;
-    path: string;
-    icon: React.ReactNode;
-    adminOnly?: boolean;
-}
-
-const Sidebar: React.FC = () => {
+const Sidebar = () => {
     const [isExpanded, setIsExpanded] = useState(true);
     const [userIsAdmin, setUserIsAdmin] = useState(false);
+    const [userName, setUserName] = useState('');
     const pathname = usePathname();
 
-    // Verificar se o usuário é administrador quando o componente é montado
+    // Verificar se o usuário é administrador e obter informações do usuário
     useEffect(() => {
         const checkAdmin = async () => {
             try {
                 const admin = await isAdmin();
                 setUserIsAdmin(admin);
+
+                // Obter dados do usuário
+                const userData = await simpleGetUser();
+                if (userData && userData.name) {
+                    setUserName(userData.name);
+                }
             } catch (error) {
                 console.error('Erro ao verificar permissões de administrador:', error);
             }
         };
 
         checkAdmin();
+
+        // Verificar preferência salva no localStorage para o estado da sidebar
+        const savedSidebarState = localStorage.getItem('sidebarExpanded');
+        if (savedSidebarState !== null) {
+            setIsExpanded(savedSidebarState === 'true');
+        }
     }, []);
 
     // Ícones para a sidebar
@@ -77,22 +81,32 @@ const Sidebar: React.FC = () => {
         </svg>
     );
 
+    const SettingsIcon = () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+    );
+
     // Definição dos itens de menu
-    const menuItems: MenuItem[] = [
+    const menuItems = [
         {
             title: 'Dashboard',
             path: '/dashboard',
-            icon: <DashboardIcon />
+            icon: <DashboardIcon />,
+            adminOnly: false
         },
         {
             title: 'Conexões',
             path: '/connections',
-            icon: <ConnectionsIcon />
+            icon: <ConnectionsIcon />,
+            adminOnly: false
         },
         {
             title: 'Relatórios',
             path: '/reports',
-            icon: <ReportsIcon />
+            icon: <ReportsIcon />,
+            adminOnly: false
         },
         {
             title: 'Administração',
@@ -103,12 +117,22 @@ const Sidebar: React.FC = () => {
         {
             title: 'Perfil',
             path: '/profile',
-            icon: <ProfileIcon />
+            icon: <ProfileIcon />,
+            adminOnly: false
+        },
+        {
+            title: 'Configurações',
+            path: '/settings',
+            icon: <SettingsIcon />,
+            adminOnly: false
         }
     ];
 
     const toggleSidebar = () => {
-        setIsExpanded(!isExpanded);
+        const newExpandedState = !isExpanded;
+        setIsExpanded(newExpandedState);
+        // Salvar preferência no localStorage
+        localStorage.setItem('sidebarExpanded', newExpandedState);
     };
 
     return (
@@ -145,6 +169,18 @@ const Sidebar: React.FC = () => {
                 </button>
             </div>
 
+            {isExpanded && (
+                <div className="user-profile">
+                    <div className="user-avatar">
+                        {userName ? userName.charAt(0).toUpperCase() : 'U'}
+                    </div>
+                    <div className="user-info">
+                        <div className="user-name">{userName || 'Usuário'}</div>
+                        <div className="user-role">{userIsAdmin ? 'Administrador' : 'Usuário'}</div>
+                    </div>
+                </div>
+            )}
+
             <div className="menu-container">
                 <nav className="main-nav">
                     <ul>
@@ -168,6 +204,13 @@ const Sidebar: React.FC = () => {
                     </ul>
                 </nav>
             </div>
+
+            {isExpanded && (
+                <div className="sidebar-footer">
+                    <div className="version">Portal do Cliente v2.0</div>
+                    <div className="copyright">&copy; {new Date().getFullYear()} Binove</div>
+                </div>
+            )}
         </div>
     );
 };

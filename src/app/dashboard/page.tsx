@@ -1,226 +1,196 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
-import { simpleGetUser } from '@/lib/simple-auth';
+import { Search } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 
+// Componente para card individual
+const DashboardCard = ({ title, type, description, category, date, imagePath }) => {
+    return (
+        <div className="bg-white rounded-md shadow-sm hover:shadow-md transition-shadow">
+            <div className="h-32 relative bg-gray-100 rounded-t-md overflow-hidden">
+                {/* Imagem placeholder ou real */}
+                {imagePath ? (
+                    <Image
+                        src={imagePath}
+                        alt={title}
+                        width={500}
+                        height={300}
+                        className="object-cover w-full h-full"
+                    />
+                ) : (
+                    <div className="flex items-center justify-center h-full w-full text-gray-400">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                    </div>
+                )}
+            </div>
 
-
-// Definição do tipo para relatórios do Power BI
-interface PowerBIReport {
-    id: string;
-    name: string;
-    embedUrl: string;
-    type: 'report' | 'dashboard';
-    thumbnail?: string;
-    description?: string;
-    createdAt: string;
-    workspace: string;
-}
-
-const DashboardPage: React.FC = () => {
-    const [reports, setReports] = useState<PowerBIReport[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [filter, setFilter] = useState('');
-    const [activeTab, setActiveTab] = useState('all');
-
-    useEffect(() => {
-        const fetchReports = async () => {
-            try {
-                setIsLoading(true);
-
-                // Aqui faremos a chamada para a API para buscar os relatórios
-                // Por enquanto, vamos usar dados de exemplo
-                const response = await fetch('/api/powerbi/reports');
-
-                if (!response.ok) {
-                    throw new Error('Falha ao carregar os relatórios');
-                }
-
-                const data = await response.json();
-                setReports(data);
-
-            } catch (err: any) {
-                console.error('Erro ao carregar relatórios:', err);
-                setError(err.message || 'Ocorreu um erro ao carregar os relatórios');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        // Para fins de demonstração, usando dados estáticos
-        const mockReports: PowerBIReport[] = [
-            {
-                id: '1',
-                name: 'Dashboard de Vendas',
-                embedUrl: 'https://app.powerbi.com/reportEmbed?reportId=1',
-                type: 'dashboard',
-                thumbnail: '/images/reports/sales.jpg',
-                description: 'Visão geral das vendas mensais e anuais',
-                createdAt: '2025-03-15',
-                workspace: 'Vendas'
-            },
-            {
-                id: '2',
-                name: 'Análise de Marketing',
-                embedUrl: 'https://app.powerbi.com/reportEmbed?reportId=2',
-                type: 'report',
-                thumbnail: '/images/reports/marketing.jpg',
-                description: 'Métricas de campanhas de marketing e ROI',
-                createdAt: '2025-03-10',
-                workspace: 'Marketing'
-            },
-            {
-                id: '3',
-                name: 'KPIs Financeiros',
-                embedUrl: 'https://app.powerbi.com/reportEmbed?reportId=3',
-                type: 'dashboard',
-                thumbnail: '/images/reports/finance.jpg',
-                description: 'Indicadores-chave de performance financeira',
-                createdAt: '2025-03-05',
-                workspace: 'Finanças'
-            },
-            {
-                id: '4',
-                name: 'Relatório de Operações',
-                embedUrl: 'https://app.powerbi.com/reportEmbed?reportId=4',
-                type: 'report',
-                thumbnail: '/images/reports/operations.jpg',
-                description: 'Métricas operacionais e eficiência',
-                createdAt: '2025-02-28',
-                workspace: 'Operações'
-            }
-        ];
-
-        // Simular chamada de API
-        setTimeout(() => {
-            setReports(mockReports);
-            setIsLoading(false);
-        }, 1000);
-
-    }, []);
-
-    // Filtrar relatórios com base na pesquisa
-    const filteredReports = reports.filter(report =>
-        report.name.toLowerCase().includes(filter.toLowerCase()) ||
-        report.description?.toLowerCase().includes(filter.toLowerCase()) ||
-        report.workspace.toLowerCase().includes(filter.toLowerCase())
+            <div className="p-4">
+                <h3 className="font-medium text-gray-900 mb-1">{title}</h3>
+                <div className="mb-2">
+                    <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded ${type === 'Dashboard'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-orange-100 text-orange-800'
+                        }`}>
+                        {type}
+                    </span>
+                </div>
+                <p className="text-sm text-gray-600 mb-4">{description}</p>
+                <div className="flex justify-between text-xs text-gray-500">
+                    <span>{category}</span>
+                    <span>{date}</span>
+                </div>
+            </div>
+        </div>
     );
+};
 
-    // Filtrar relatórios com base na tab ativa
-    const tabFilteredReports = activeTab === 'all'
-        ? filteredReports
-        : filteredReports.filter(report => report.type === activeTab);
+const DashboardsPage = () => {
+    const [activeTab, setActiveTab] = useState('todos');
+    const [searchQuery, setSearchQuery] = useState('');
 
-    const openReport = (reportId: string) => {
-        // Implementar navegação para o relatório
-        console.log(`Abrindo relatório: ${reportId}`);
-        // router.push(`/reports/${reportId}`);
-    };
+    // Dados de exemplo para os dashboards
+    const dashboards = [
+        {
+            id: 1,
+            title: 'Dashboard de Vendas',
+            type: 'Dashboard',
+            description: 'Visão geral das vendas mensais e anuais',
+            category: 'Vendas',
+            date: '14/03/2025',
+            imagePath: '/placeholder-dashboard.png' // Substitua por seus caminhos reais de imagem
+        },
+        {
+            id: 2,
+            title: 'Análise de Marketing',
+            type: 'Relatório',
+            description: 'Métricas de campanhas de marketing e ROI',
+            category: 'Marketing',
+            date: '09/03/2025',
+            imagePath: '/placeholder-dashboard.png'
+        },
+        {
+            id: 3,
+            title: 'KPIs Financeiros',
+            type: 'Dashboard',
+            description: 'Indicadores-chave de performance financeira',
+            category: 'Finanças',
+            date: '04/03/2025',
+            imagePath: '/placeholder-dashboard.png'
+        },
+        {
+            id: 4,
+            title: 'Relatório de Operações',
+            type: 'Relatório',
+            description: 'Métricas operacionais e eficiência',
+            category: 'Operações',
+            date: '27/02/2025',
+            imagePath: '/placeholder-dashboard.png'
+        }
+    ];
+
+    // Filtrar dashboards com base na tab selecionada e texto de busca
+    const filteredDashboards = dashboards.filter(dashboard => {
+        const matchesSearch = dashboard.title.toLowerCase().includes(searchQuery.toLowerCase());
+
+        if (activeTab === 'todos') return matchesSearch;
+        if (activeTab === 'dashboards') return dashboard.type === 'Dashboard' && matchesSearch;
+        if (activeTab === 'relatorios') return dashboard.type === 'Relatório' && matchesSearch;
+
+        return matchesSearch;
+    });
 
     return (
         <DashboardLayout>
-            <div className="dashboard-container">
-                <div className="dashboard-header">
-                    <h1>Dashboards</h1>
-                    <div className="search-bar">
+            <div>
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-2xl font-bold text-gray-800">Dashboards</h1>
+
+                    <div className="relative">
                         <input
                             type="text"
                             placeholder="Buscar dashboards..."
-                            value={filter}
-                            onChange={(e) => setFilter(e.target.value)}
-                            aria-label="Buscar dashboards"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-64 pl-10 pr-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
+                        <div className="absolute left-0 top-0 flex items-center pl-3 h-full">
+                            <Search size={16} className="text-gray-400" />
+                        </div>
                     </div>
                 </div>
 
-                <div className="dashboard-tabs">
-                    <button
-                        className={`tab ${activeTab === 'all' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('all')}
-                    >
-                        Todos
-                    </button>
-                    <button
-                        className={`tab ${activeTab === 'dashboard' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('dashboard')}
-                    >
-                        Dashboards
-                    </button>
-                    <button
-                        className={`tab ${activeTab === 'report' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('report')}
-                    >
-                        Relatórios
-                    </button>
+                {/* Tabs de navegação */}
+                <div className="border-b border-gray-200 mb-6">
+                    <div className="flex space-x-8">
+                        <button
+                            onClick={() => setActiveTab('todos')}
+                            className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'todos'
+                                    ? 'border-blue-500 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }`}
+                        >
+                            Todos
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('dashboards')}
+                            className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'dashboards'
+                                    ? 'border-blue-500 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }`}
+                        >
+                            Dashboards
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('relatorios')}
+                            className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'relatorios'
+                                    ? 'border-blue-500 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }`}
+                        >
+                            Relatórios
+                        </button>
+                    </div>
                 </div>
 
-                {isLoading ? (
-                    <div className="loading-container">
-                        <div className="loading-spinner"></div>
-                        <p>Carregando dashboards...</p>
-                    </div>
-                ) : error ? (
-                    <div className="error-message">
-                        <p>{error}</p>
-                        <button onClick={() => window.location.reload()}>Tentar novamente</button>
-                    </div>
-                ) : tabFilteredReports.length === 0 ? (
-                    <div className="empty-state">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="3" y1="9" x2="21" y2="9"></line>
-                            <line x1="9" y1="21" x2="9" y2="9"></line>
-                        </svg>
-                        <h3>Nenhum dashboard encontrado</h3>
-                        <p>Não encontramos dashboards correspondentes à sua busca.</p>
-                    </div>
-                ) : (
-                    <div className="reports-grid">
-                        {tabFilteredReports.map(report => (
-                            <div
-                                key={report.id}
-                                className="report-card"
-                                onClick={() => openReport(report.id)}
-                            >
-                                <div className="report-thumbnail">
-                                    {report.thumbnail ? (
-                                        <Image
-                                            src={report.thumbnail}
-                                            alt={report.name}
-                                            width={300}
-                                            height={180}
-                                            style={{ objectFit: 'cover' }}
-                                        />
-                                    ) : (
-                                        <div className="placeholder-thumbnail">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                                <line x1="3" y1="9" x2="21" y2="9"></line>
-                                                <line x1="9" y1="21" x2="9" y2="9"></line>
-                                            </svg>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="report-info">
-                                    <h3>{report.name}</h3>
-                                    <span className="report-type">{report.type === 'dashboard' ? 'Dashboard' : 'Relatório'}</span>
-                                    <p className="report-description">{report.description}</p>
-                                    <div className="report-footer">
-                                        <span className="report-workspace">{report.workspace}</span>
-                                        <span className="report-date">
-                                            {new Date(report.createdAt).toLocaleDateString('pt-BR')}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
+                {/* Grid de cards de dashboard */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {filteredDashboards.map((dashboard) => (
+                        <DashboardCard
+                            key={dashboard.id}
+                            title={dashboard.title}
+                            type={dashboard.type}
+                            description={dashboard.description}
+                            category={dashboard.category}
+                            date={dashboard.date}
+                            imagePath={dashboard.imagePath}
+                        />
+                    ))}
+                </div>
+
+                {/* Estado vazio */}
+                {filteredDashboards.length === 0 && (
+                    <div className="text-center py-12">
+                        <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400">
+                                <rect x="2" y="2" width="20" height="20" rx="2" ry="2"></rect>
+                                <path d="M9 10.3c0 .5-.2.7-.7.7H6.7c-.5 0-.7-.2-.7-.7V8.7c0-.5.2-.7.7-.7h1.6c.5 0 .7.2.7.7v1.6z"></path>
+                                <path d="M9 15.3c0 .5-.2.7-.7.7H6.7c-.5 0-.7-.2-.7-.7v-1.6c0-.5.2-.7.7-.7h1.6c.5 0 .7.2.7.7v1.6z"></path>
+                                <path d="M14 10.3c0 .5-.2.7-.7.7h-1.6c-.5 0-.7-.2-.7-.7V8.7c0-.5.2-.7.7-.7h1.6c.5 0 .7.2.7.7v1.6z"></path>
+                                <path d="M14 15.3c0 .5-.2.7-.7.7h-1.6c-.5 0-.7-.2-.7-.7v-1.6c0-.5.2-.7.7-.7h1.6c.5 0 .7.2.7.7v1.6z"></path>
+                                <path d="M19 10.3c0 .5-.2.7-.7.7h-1.6c-.5 0-.7-.2-.7-.7V8.7c0-.5.2-.7.7-.7h1.6c.5 0 .7.2.7.7v1.6z"></path>
+                                <path d="M19 15.3c0 .5-.2.7-.7.7h-1.6c-.5 0-.7-.2-.7-.7v-1.6c0-.5.2-.7.7-.7h1.6c.5 0 .7.2.7.7v1.6z"></path>
+                            </svg>
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-1">Nenhum dashboard encontrado</h3>
+                        <p className="text-gray-500">
+                            Não foram encontrados dashboards que correspondam aos seus critérios de busca.
+                        </p>
                     </div>
                 )}
             </div>
@@ -228,4 +198,4 @@ const DashboardPage: React.FC = () => {
     );
 };
 
-export default DashboardPage;
+export default DashboardsPage;

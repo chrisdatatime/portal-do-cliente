@@ -8,6 +8,7 @@ import { simpleIsAuthenticated } from '@/lib/simple-auth';
 import '@/styles/sidebar.css';
 import '@/styles/dashboard.css';
 
+// Interface para as props
 interface DashboardLayoutProps {
     children: React.ReactNode;
 }

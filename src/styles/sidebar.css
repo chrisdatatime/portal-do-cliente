@@ -192,3 +192,81 @@
         width: 100%;
     }
 }
+
+/* Adicione estes estilos ao seu arquivo sidebar.css */
+.user-profile {
+    display: flex;
+    padding: 16px;
+    border-bottom: 1px solid #eaeaea;
+    align-items: center;
+    gap: 12px;
+}
+
+.dark-mode .user-profile {
+    border-bottom-color: #333;
+}
+
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--primary-color, #1e88e5);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    font-weight: 500;
+    font-size: 14px;
+    color: #333;
+}
+
+.dark-mode .user-name {
+    color: #e0e0e0;
+}
+
+.user-role {
+    font-size: 12px;
+    color: #666;
+}
+
+.dark-mode .user-role {
+    color: #aaa;
+}
+
+.sidebar-footer {
+    padding: 16px;
+    border-top: 1px solid #eaeaea;
+    margin-top: auto;
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+}
+
+.dark-mode .sidebar-footer {
+    border-top-color: #333;
+    color: #aaa;
+}
+
+.version {
+    margin-bottom: 4px;
+}
+
+.menu-divider {
+    height: 1px;
+    background-color: #eaeaea;
+    margin: 8px 16px;
+}
+
+.dark-mode .menu-divider {
+    background-color: #333;
+}
