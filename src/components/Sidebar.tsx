@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { simpleGetUser } from '@/lib/simple-auth';
+import { isAdmin } from '@/lib/simple-auth';
 
 // Tipos para os itens de menu
 interface MenuItem {

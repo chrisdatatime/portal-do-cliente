@@ -3,8 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
+import Navbar from '@/components/Navbar';
 import { simpleIsAuthenticated } from '@/lib/simple-auth';
 import '@/styles/sidebar.css';
+import '@/styles/dashboard.css';
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
@@ -42,11 +44,21 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     }
 
     return (
-        <div className="main-layout">
-            <Sidebar />
-            <main className="main-content">
-                {children}
-            </main>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+            {/* Navbar fixo no topo com z-index alto */}
+            <Navbar />
+
+            <div className="flex">
+                {/* Sidebar à esquerda com z-index médio */}
+                <div className="sidebar-container" style={{ zIndex: 90 }}>
+                    <Sidebar />
+                </div>
+
+                {/* Conteúdo principal com padding para compensar a navbar e sidebar */}
+                <main className="flex-1 p-6 mt-16 transition-all duration-200">
+                    {children}
+                </main>
+            </div>
         </div>
     );
 };

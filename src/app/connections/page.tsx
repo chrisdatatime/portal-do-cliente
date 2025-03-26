@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import DashboardLayout from '@/components/DashboardLayout';
-import { isAdmin } from '@/lib/simple-auth';
+import { isAdmin as checkIsAdmin } from '@/lib/simple-auth';
 import '@/styles/connections.css';
 
 // Tipo para conexões
@@ -28,7 +28,7 @@ const ConnectionsPage: React.FC = () => {
     useEffect(() => {
         const checkAdmin = async () => {
             try {
-                const admin = await isAdmin();
+                const admin = await checkIsAdmin();
                 setIsAdmin(admin);
             } catch (error) {
                 console.error('Erro ao verificar permissões de administrador:', error);

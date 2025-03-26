@@ -254,3 +254,22 @@ textarea {
         margin-bottom: 8px;
     }
 }
+
+/* Adicione isso ao seu arquivo global.css ou crie um navbar.css */
+.z-50 {
+    z-index: 50;
+}
+
+.fixed {
+    position: fixed;
+}
+
+.absolute {
+    position: absolute;
+}
+
+.relative {
+    position: relative;
+}
+
+/* Se você não estiver usando Tailwind, adicione mais classes CSS conforme necessário */

@@ -103,31 +103,47 @@ export const simpleLogout = async () => {
 // Obter dados do usuário
 export const simpleGetUser = async () => {
     try {
-        // Tentar obter dados do Supabase
+        // Tentar obter do Supabase primeiro
         const { data, error } = await supabase.auth.getUser();
 
         if (error) {
-            throw error;
+            console.error('Erro ao obter usuário do Supabase:', error);
+            // Tentar obter do backup local
+            const localUser = localStorage.getItem('USER_STORAGE_KEY');
+            return localUser ? JSON.parse(localUser) : null;
         }
 
         if (data.user) {
-            return {
-                name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'Usuário',
+            // Dados básicos do usuário
+            const user = {
+                id: data.user.id,
                 email: data.user.email,
+                name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'Usuário',
+                avatarUrl: data.user.user_metadata?.avatar_url,
                 lastLogin: new Date(data.user.last_sign_in_at || Date.now()).toLocaleString()
             };
+
+            return user;
         }
+
+        // Fallback para localStorage
+        const email = localStorage.getItem('userEmail');
+        return {
+            name: email ? email.split('@')[0] : 'Usuário',
+            email: email || 'usuario@exemplo.com',
+            lastLogin: new Date().toLocaleString()
+        };
     } catch (error) {
         console.error('Erro ao obter dados do usuário:', error);
-    }
 
-    // Fallback para localStorage
-    const email = localStorage.getItem('userEmail');
-    return {
-        name: email ? email.split('@')[0] : 'Usuário',
-        email: email || 'usuario@binove.com.br',
-        lastLogin: new Date().toLocaleString()
-    };
+        // Fallback para dados locais
+        const email = localStorage.getItem('userEmail');
+        return {
+            name: email ? email.split('@')[0] : 'Usuário',
+            email: email || 'usuario@exemplo.com',
+            lastLogin: new Date().toLocaleString()
+        };
+    }
 };
 
 // Função para recuperação de senha
@@ -340,4 +356,5 @@ export const deleteUser = async (userId) => {
         throw error;
     }
 };
+
 
