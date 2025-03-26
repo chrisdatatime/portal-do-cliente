@@ -5,8 +5,42 @@ import Image from 'next/image';
 import { Search } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 
+interface PowerBIReport {
+    id: string;
+    name: string;
+    embedUrl: string;
+    type: 'report' | 'dashboard';
+    thumbnail?: string;
+    description?: string;
+    createdAt: string;
+    workspace: string;
+    category?: string;
+    date?: string;
+    imagePath?: string;
+    title?: string;
+}
+
+interface Dashboard {
+    id: number;
+    title: string;
+    type: string;
+    description: string;
+    category: string;
+    date: string;
+    imagePath: string;
+}
+
+interface DashboardCardProps {
+    title: string;
+    type: string;
+    description: string;
+    category: string;
+    date: string;
+    imagePath?: string;
+}
+
 // Componente para card individual
-const DashboardCard = ({ title, type, description, category, date, imagePath }) => {
+const DashboardCard: React.FC<DashboardCardProps> = ({ title, type, description, category, date, imagePath }) => {
     return (
         <div className="bg-white rounded-md shadow-sm hover:shadow-md transition-shadow">
             <div className="h-32 relative bg-gray-100 rounded-t-md overflow-hidden">
@@ -34,8 +68,8 @@ const DashboardCard = ({ title, type, description, category, date, imagePath }) 
                 <h3 className="font-medium text-gray-900 mb-1">{title}</h3>
                 <div className="mb-2">
                     <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded ${type === 'Dashboard'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-orange-100 text-orange-800'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-orange-100 text-orange-800'
                         }`}>
                         {type}
                     </span>
@@ -50,12 +84,12 @@ const DashboardCard = ({ title, type, description, category, date, imagePath }) 
     );
 };
 
-const DashboardsPage = () => {
-    const [activeTab, setActiveTab] = useState('todos');
-    const [searchQuery, setSearchQuery] = useState('');
+const DashboardsPage: React.FC = () => {
+    const [activeTab, setActiveTab] = useState<string>('todos');
+    const [searchQuery, setSearchQuery] = useState<string>('');
 
     // Dados de exemplo para os dashboards
-    const dashboards = [
+    const dashboards: Dashboard[] = [
         {
             id: 1,
             title: 'Dashboard de Vendas',
@@ -131,8 +165,8 @@ const DashboardsPage = () => {
                         <button
                             onClick={() => setActiveTab('todos')}
                             className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'todos'
-                                    ? 'border-blue-500 text-blue-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                ? 'border-blue-500 text-blue-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`}
                         >
                             Todos
@@ -140,8 +174,8 @@ const DashboardsPage = () => {
                         <button
                             onClick={() => setActiveTab('dashboards')}
                             className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'dashboards'
-                                    ? 'border-blue-500 text-blue-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                ? 'border-blue-500 text-blue-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`}
                         >
                             Dashboards
@@ -149,8 +183,8 @@ const DashboardsPage = () => {
                         <button
                             onClick={() => setActiveTab('relatorios')}
                             className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'relatorios'
-                                    ? 'border-blue-500 text-blue-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                ? 'border-blue-500 text-blue-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`}
                         >
                             Relatórios

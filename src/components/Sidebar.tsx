@@ -6,10 +6,17 @@ import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { simpleGetUser, isAdmin } from '@/lib/simple-auth';
 
-const Sidebar = () => {
-    const [isExpanded, setIsExpanded] = useState(true);
-    const [userIsAdmin, setUserIsAdmin] = useState(false);
-    const [userName, setUserName] = useState('');
+interface MenuItem {
+    title: string;
+    path: string;
+    icon: React.ReactNode;
+    adminOnly: boolean;
+}
+
+const Sidebar: React.FC = () => {
+    const [isExpanded, setIsExpanded] = useState<boolean>(true);
+    const [userIsAdmin, setUserIsAdmin] = useState<boolean>(false);
+    const [userName, setUserName] = useState<string>('');
     const pathname = usePathname();
 
     // Verificar se o usuário é administrador e obter informações do usuário
@@ -89,7 +96,7 @@ const Sidebar = () => {
     );
 
     // Definição dos itens de menu
-    const menuItems = [
+    const menuItems: MenuItem[] = [
         {
             title: 'Dashboard',
             path: '/dashboard',
@@ -132,7 +139,7 @@ const Sidebar = () => {
         const newExpandedState = !isExpanded;
         setIsExpanded(newExpandedState);
         // Salvar preferência no localStorage
-        localStorage.setItem('sidebarExpanded', newExpandedState);
+        localStorage.setItem('sidebarExpanded', String(newExpandedState));
     };
 
     return (

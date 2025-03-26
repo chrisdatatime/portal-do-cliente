@@ -1,36 +1,29 @@
 /* src/styles/sidebar.css */
 .sidebar {
-    /* Manter outras propriedades existentes */
     position: fixed;
-    top: 0;
+    top: 64px;
+    /* Altura da navbar */
     left: 0;
+    width: 240px;
+    height: calc(100vh - 64px);
+    background-color: white;
+    border-right: 1px solid #eaeaea;
     z-index: 90;
-    /* Menor que a navbar (100) mas maior que o conteúdo principal */
-    padding-top: 4rem;
-    /* Adicione padding-top para deixar espaço para a navbar */
-    height: 100vh;
-}
-
-/* Se você tem classes para estados expandido e colapsado, mantenha-as e apenas adicione o z-index */
-.sidebar.expanded,
-.sidebar.collapsed {
-    z-index: 90;
-}
-
-/* Ajustar o conteúdo principal para não ficar embaixo da sidebar */
-.main-content {
-    z-index: 80;
-}
-
-/* Garantir que elementos no conteúdo principal possam ter z-index maior que a sidebar quando necessário */
-.main-content .elevated {
-    z-index: 95;
+    transition: width 0.3s ease;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .dark-mode .sidebar {
     background-color: #1e1e1e;
     border-right-color: #333;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar.collapsed {
+    width: 64px;
 }
 
 .sidebar-header {
@@ -75,6 +68,56 @@
 
 .dark-mode .toggle-button:hover {
     color: #4a90e2;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid #eaeaea;
+}
+
+.dark-mode .user-profile {
+    border-bottom-color: #333;
+}
+
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #1e88e5;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    margin-right: 12px;
+}
+
+.user-info {
+    overflow: hidden;
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dark-mode .user-name {
+    color: #e0e0e0;
+}
+
+.user-role {
+    font-size: 12px;
+    color: #666;
+}
+
+.dark-mode .user-role {
+    color: #aaa;
 }
 
 .menu-container {
@@ -134,7 +177,7 @@
     margin-right: 12px;
 }
 
-.collapsed .icon {
+.sidebar.collapsed .icon {
     margin-right: 0;
 }
 
@@ -144,109 +187,9 @@
     text-overflow: ellipsis;
 }
 
-/* Responsividade */
-@media (max-width: 768px) {
-    .sidebar {
-        width: 100%;
-        height: auto;
-        position: relative;
-    }
-
-    .sidebar.collapsed {
-        width: 100%;
-    }
-
-    .menu-container {
-        max-height: 300px;
-    }
-
-    .sidebar-header {
-        justify-content: center;
-    }
-
-    .toggle-button {
-        display: none;
-    }
-}
-
-/* Layout do conteúdo principal */
-.main-layout {
-    display: flex;
-    min-height: 100vh;
-}
-
-.main-content {
-    flex: 1;
-    margin-left: 240px;
-    padding: 20px;
-    transition: margin-left 0.3s ease;
-}
-
-.sidebar.collapsed~.main-content {
-    margin-left: 64px;
-}
-
-@media (max-width: 768px) {
-    .main-content {
-        margin-left: 0;
-        width: 100%;
-    }
-}
-
-/* Adicione estes estilos ao seu arquivo sidebar.css */
-.user-profile {
-    display: flex;
-    padding: 16px;
-    border-bottom: 1px solid #eaeaea;
-    align-items: center;
-    gap: 12px;
-}
-
-.dark-mode .user-profile {
-    border-bottom-color: #333;
-}
-
-.user-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background-color: var(--primary-color, #1e88e5);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 16px;
-}
-
-.user-info {
-    display: flex;
-    flex-direction: column;
-}
-
-.user-name {
-    font-weight: 500;
-    font-size: 14px;
-    color: #333;
-}
-
-.dark-mode .user-name {
-    color: #e0e0e0;
-}
-
-.user-role {
-    font-size: 12px;
-    color: #666;
-}
-
-.dark-mode .user-role {
-    color: #aaa;
-}
-
 .sidebar-footer {
     padding: 16px;
     border-top: 1px solid #eaeaea;
-    margin-top: auto;
     font-size: 12px;
     color: #666;
     text-align: center;
@@ -261,12 +204,61 @@
     margin-bottom: 4px;
 }
 
-.menu-divider {
-    height: 1px;
-    background-color: #eaeaea;
-    margin: 8px 16px;
+/* Layout do conteúdo principal */
+.main-content {
+    margin-left: 240px;
+    padding: 24px;
+    transition: margin-left 0.3s ease;
+    width: calc(100% - 240px);
 }
 
-.dark-mode .menu-divider {
-    background-color: #333;
+.sidebar.collapsed~.main-content {
+    margin-left: 64px;
+    width: calc(100% - 64px);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 240px;
+        transform: translateX(-100%);
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .sidebar.expanded {
+        transform: translateX(0);
+    }
+
+    .sidebar.collapsed {
+        width: 0;
+        transform: translateX(-100%);
+    }
+
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .sidebar.expanded~.main-content,
+    .sidebar.collapsed~.main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .toggle-button-mobile {
+        display: block;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: #1e88e5;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        z-index: 99;
+    }
 }

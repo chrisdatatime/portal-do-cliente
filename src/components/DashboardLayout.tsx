@@ -1,3 +1,4 @@
+// src/components/DashboardLayout.tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -8,7 +9,6 @@ import { simpleIsAuthenticated } from '@/lib/simple-auth';
 import '@/styles/sidebar.css';
 import '@/styles/dashboard.css';
 
-// Interface para as props
 interface DashboardLayoutProps {
     children: React.ReactNode;
 }
@@ -45,18 +45,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            {/* Navbar fixo no topo com z-index alto */}
+        <div className="dashboard-root">
+            {/* Navbar fixo no topo */}
             <Navbar />
 
-            <div className="flex">
-                {/* Sidebar à esquerda com z-index médio */}
-                <div className="sidebar-container" style={{ zIndex: 90 }}>
-                    <Sidebar />
-                </div>
-
-                {/* Conteúdo principal com padding para compensar a navbar e sidebar */}
-                <main className="flex-1 p-6 mt-16 transition-all duration-200">
+            {/* Estrutura principal com sidebar e conteúdo */}
+            <div className="dashboard-container">
+                <Sidebar />
+                <main className="main-content">
                     {children}
                 </main>
             </div>
