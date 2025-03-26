@@ -1,0 +1,303 @@
+/* src/styles/accessibility.css */
+/* Estilos para melhorar a acessibilidade */
+
+/* ===== Tamanhos de fonte ===== */
+:root {
+    --base-font-size: 16px;
+    --scale-small: 0.875;
+    --scale-normal: 1;
+    --scale-large: 1.125;
+    --scale-x-large: 1.25;
+}
+
+/* Clases para ajustar o tamanho da fonte em toda a aplicação */
+.font-small {
+    font-size: calc(var(--base-font-size) * var(--scale-small));
+}
+
+.font-normal {
+    font-size: calc(var(--base-font-size) * var(--scale-normal));
+}
+
+.font-large {
+    font-size: calc(var(--base-font-size) * var(--scale-large));
+}
+
+.font-x-large {
+    font-size: calc(var(--base-font-size) * var(--scale-x-large));
+}
+
+/* ===== Modo de alto contraste ===== */
+.high-contrast {
+    --primary-color: #0057e7;
+    --primary-dark: #003db8;
+    --primary-light: #63a1ff;
+    --accent-color: #ffa500;
+    --text-color: #000000;
+    --text-secondary: #333333;
+    --background-light: #ffffff;
+    --background-dark: #eeeeee;
+    --error-color: #d30000;
+    --success-color: #00a000;
+}
+
+.high-contrast.dark-mode {
+    --primary-color: #63a1ff;
+    --primary-dark: #80b3ff;
+    --primary-light: #a3c9ff;
+    --accent-color: #ffcc00;
+    --text-color: #ffffff;
+    --text-secondary: #dddddd;
+    --background-light: #121212;
+    --background-dark: #000000;
+    --error-color: #ff5252;
+    --success-color: #52ff52;
+}
+
+.high-contrast button,
+.high-contrast a,
+.high-contrast input,
+.high-contrast select,
+.high-contrast textarea {
+    transition: none !important;
+}
+
+.high-contrast button:focus,
+.high-contrast a:focus,
+.high-contrast input:focus,
+.high-contrast select:focus,
+.high-contrast textarea:focus {
+    outline: 3px solid #ffcc00 !important;
+    outline-offset: 2px !important;
+}
+
+.high-contrast .login-form-wrapper:hover {
+    transform: none !important;
+}
+
+/* ===== Barra de acessibilidade ===== */
+.accessibility-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 8px 16px;
+    background-color: var(--background-light);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.dark-mode .accessibility-bar {
+    background-color: var(--background-dark);
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.accessibility-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.accessibility-item {
+    display: flex;
+    align-items: center;
+}
+
+.accessibility-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-color);
+    transition: background-color 0.2s ease;
+}
+
+.accessibility-button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark-mode .accessibility-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.accessibility-label {
+    font-size: 14px;
+}
+
+.font-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.font-size-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.font-size-buttons {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.font-size-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background-color: transparent;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.font-size-button:hover:not(:disabled) {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark-mode .font-size-button {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.dark-mode .font-size-button:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.font-size-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.font-size-button.reset {
+    font-weight: bold;
+}
+
+/* Responsividade da barra de acessibilidade */
+@media (max-width: 768px) {
+    .accessibility-toggle-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text-color);
+        padding: 6px;
+    }
+
+    .accessibility-controls {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background-color: var(--background-light);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 4px;
+        padding: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        z-index: 100;
+    }
+
+    .dark-mode .accessibility-controls {
+        background-color: var(--background-dark);
+        border-color: rgba(255, 255, 255, 0.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    .accessibility-controls.visible {
+        display: flex;
+    }
+
+    .accessibility-item {
+        padding: 8px 0;
+    }
+}
+
+/* ===== Melhorias gerais de acessibilidade ===== */
+
+/* Utilitário para leitores de tela */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Melhorar visibilidade de foco para acessibilidade de teclado */
+a:focus,
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Skip link (pular para o conteúdo principal) */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    padding: 8px 16px;
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: bold;
+    z-index: 100;
+    transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+    top: 0;
+}
+
+/* Melhorar contraste para texto sobre fundos claros/escuros */
+.dark-mode .text-dark {
+    color: var(--text-color) !important;
+}
+
+.text-light {
+    color: var(--background-light) !important;
+}
+
+/* Ajustes para botões com ícones */
+button.icon-only {
+    position: relative;
+}
+
+button.icon-only::after {
+    content: attr(aria-label);
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    pointer-events: none;
+    z-index: 10;
+}
+
+button.icon-only:focus::after,
+button.icon-only:hover::after {
+    opacity: 1;
+    visibility: visible;
+}

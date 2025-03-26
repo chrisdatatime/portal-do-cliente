@@ -1,0 +1,278 @@
+/* src/styles/animations.css */
+/* Animações globais e transições para melhoria de UX */
+
+/* Definição de keyframes para animações */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(-20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Classes de animação */
+.animate-fade-in {
+    animation: fadeIn 0.3s ease forwards;
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.4s ease forwards;
+}
+
+.animate-fade-in-down {
+    animation: fadeInDown 0.4s ease forwards;
+}
+
+.animate-slide-in {
+    animation: slideIn 0.3s ease forwards;
+}
+
+.animate-pulse {
+    animation: pulse 1.5s infinite;
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Durações de animação */
+.duration-300 {
+    animation-duration: 300ms;
+}
+
+.duration-500 {
+    animation-duration: 500ms;
+}
+
+.duration-700 {
+    animation-duration: 700ms;
+}
+
+/* Delays de animação */
+.delay-100 {
+    animation-delay: 100ms;
+}
+
+.delay-200 {
+    animation-delay: 200ms;
+}
+
+.delay-300 {
+    animation-delay: 300ms;
+}
+
+/* Transições de página */
+.page-transition-enter {
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+.page-transition-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 300ms, transform 300ms;
+}
+
+.page-transition-exit {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.page-transition-exit-active {
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 300ms, transform 300ms;
+}
+
+/* Animações para componentes específicos */
+.card-enter {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.card-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 300ms, transform 300ms;
+}
+
+/* Animações para loaders */
+.loader-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease forwards;
+}
+
+.dark-mode .loader-overlay {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.loading-dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading-dots span {
+    width: 8px;
+    height: 8px;
+    margin: 0 4px;
+    border-radius: 50%;
+    background-color: #4a90e2;
+    animation: dotPulse 1s infinite alternate;
+}
+
+.loading-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.loading-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes dotPulse {
+    to {
+        opacity: 0.1;
+        transform: scale(0.8);
+    }
+}
+
+/* Estilos para mensagens de feedback */
+.feedback-message {
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    animation: fadeInDown 0.3s ease forwards;
+}
+
+.feedback-message.success {
+    background-color: rgba(76, 175, 80, 0.1);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    color: #388e3c;
+}
+
+.feedback-message.error {
+    background-color: rgba(244, 67, 54, 0.1);
+    border: 1px solid rgba(244, 67, 54, 0.3);
+    color: #d32f2f;
+}
+
+.feedback-message.info {
+    background-color: rgba(33, 150, 243, 0.1);
+    border: 1px solid rgba(33, 150, 243, 0.3);
+    color: #1976d2;
+}
+
+.feedback-message.warning {
+    background-color: rgba(255, 152, 0, 0.1);
+    border: 1px solid rgba(255, 152, 0, 0.3);
+    color: #f57c00;
+}
+
+.dark-mode .feedback-message.success {
+    background-color: rgba(76, 175, 80, 0.2);
+    border-color: rgba(76, 175, 80, 0.4);
+    color: #81c784;
+}
+
+.dark-mode .feedback-message.error {
+    background-color: rgba(244, 67, 54, 0.2);
+    border-color: rgba(244, 67, 54, 0.4);
+    color: #e57373;
+}
+
+.dark-mode .feedback-message.info {
+    background-color: rgba(33, 150, 243, 0.2);
+    border-color: rgba(33, 150, 243, 0.4);
+    color: #64b5f6;
+}
+
+.dark-mode .feedback-message.warning {
+    background-color: rgba(255, 152, 0, 0.2);
+    border-color: rgba(255, 152, 0, 0.4);
+    color: #ffb74d;
+}
+
+/* Animações para os elementos da lista */
+.list-item-appear {
+    opacity: 0;
+    transform: translateX(-10px);
+}
+
+.list-item-appear-active {
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 300ms, transform 300ms;
+}
