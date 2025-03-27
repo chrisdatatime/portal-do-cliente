@@ -4,7 +4,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
-import Navbar from '@/components/Navbar';
 import { simpleIsAuthenticated } from '@/lib/simple-auth';
 import '@/styles/sidebar.css';
 import '@/styles/dashboard.css';
@@ -46,9 +45,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
     return (
         <div className="dashboard-root">
-            {/* Navbar fixo no topo */}
-            <Navbar />
-
             {/* Estrutura principal com sidebar e conteúdo */}
             <div className="dashboard-container">
                 <Sidebar />
