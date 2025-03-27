@@ -10,7 +10,7 @@ interface Dashboard {
   id: string;
   title: string;
   category: string;
-  type: 'Dashboard' | 'Relatório';
+  type: string;  // Este campo pode estar causando problemas - verifique se é uma string ou outro tipo
   description: string;
   lastUpdated: string;
   isFavorite: boolean;
@@ -39,18 +39,18 @@ const Dashboard: React.FC = () => {
         // const data = await response.json();
 
         // Dados simulados para desenvolvimento
-        const mockData = [
+        const mockData: Dashboard[] = [
           {
-            id: '1',
-            title: 'Dashboard de Vendas',
-            category: 'business',
-            type: 'Dashboard',
-            description: 'Visão geral das vendas mensais e anuais',
-            lastUpdated: '14/03/2025',
+            id: "1",
+            title: "Dashboard de Vendas",
+            category: "business",
+            type: "Dashboard", // Certifique-se de que este valor é do tipo esperado
+            description: "Visão geral das vendas mensais e anuais",
+            lastUpdated: "14/03/2025",
             isFavorite: true,
-            thumbnail: '/dashboard-vendas.jpg',
+            thumbnail: "/dashboard-vendas.jpg",
             isNew: false,
-            embedUrl: 'https://app.powerbi.com/reportEmbed?reportId=f6bfd646-b718-44dc-a378-b73e6b528204'
+            embedUrl: "https://app.powerbi.com/reportEmbed?reportId=f6bfd646-b718-44dc-a378-b73e6b528204"
           },
           {
             id: '2',

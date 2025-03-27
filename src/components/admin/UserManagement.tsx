@@ -41,6 +41,22 @@ export default function UserManagement() {
         fetchUsers();
     }, []);
 
+    useEffect(() => {
+        const fetchCompanies = async () => {
+            try {
+                const response = await fetch('/api/companies');
+                if (response.ok) {
+                    const data = await response.json();
+                    setCompanies(data);
+                }
+            } catch (error) {
+                console.error('Erro ao buscar empresas:', error);
+            }
+        };
+
+        fetchCompanies();
+    }, []);
+
     const fetchUsers = async () => {
         try {
             setLoading(true);
@@ -336,15 +352,23 @@ export default function UserManagement() {
                             )}
 
                             <div className="admin-form-group">
-                                <label htmlFor="name">Nome</label>
-                                <input
-                                    type="text"
-                                    id="name"
-                                    name="name"
-                                    value={formData.name}
+                                <label htmlFor="company_id">Empresa</label>
+                                <select
+                                    id="company_id"
+                                    name="company_id"
+                                    value={formData.company_id || ''}
                                     onChange={handleInputChange}
-                                />
+                                >
+                                    <option value="">Selecione uma empresa</option>
+                                    {companies.map(company => (
+                                        <option key={company.id} value={company.id}>
+                                            {company.name}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
+
+                            const [companies, setCompanies] = useState<Company[]>([]);
 
                             <div className="admin-form-group">
                                 <label htmlFor="company">Empresa</label>

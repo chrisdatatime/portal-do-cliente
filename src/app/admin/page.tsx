@@ -1,6 +1,7 @@
 // src/app/admin/page.tsx
 'use client';
 
+
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -9,10 +10,12 @@ import UserManagement from '@/components/admin/UserManagement';
 import ConnectionsManagement from '@/components/admin/ConnectionsManagement';
 import WorkspacesManagement from '@/components/admin/WorkspacesManagement';
 import SettingsManagement from '@/components/admin/SettingsManagement';
+import CompanyManagement from '@/components/admin/CompanyManagement';
 import '@/styles/admin.css';
 
+
 // Definição de tabs para o painel administrativo
-type AdminTab = 'users' | 'connections' | 'workspaces' | 'settings';
+type AdminTab = 'users' | 'connections' | 'workspaces' | 'settings' | 'companies';
 
 const AdminPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<AdminTab>('users');
@@ -49,7 +52,8 @@ const AdminPage: React.FC = () => {
         users: <UserManagement />,
         connections: <ConnectionsManagement />,
         workspaces: <WorkspacesManagement />,
-        settings: <SettingsManagement />
+        settings: <SettingsManagement />,
+        companies: <CompanyManagement />  // Adicione esta linha
     };
 
     if (isLoading) {
@@ -108,6 +112,16 @@ const AdminPage: React.FC = () => {
                             <rect x="3" y="14" width="7" height="7"></rect>
                         </svg>
                         Workspaces
+                    </button>
+                    <button
+                        className={`admin-nav-item ${activeTab === 'companies' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('companies')}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                        </svg>
+                        Empresas
                     </button>
                     <button
                         className={`admin-nav-item ${activeTab === 'settings' ? 'active' : ''}`}
