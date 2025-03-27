@@ -1,81 +1,113 @@
+// src/app/dashboard/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Search, Clock, BarChart2, TrendingUp, Bookmark, Filter } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
+import '@/styles/dashboard.css';
 
 // Definição de tipos
 interface Dashboard {
   id: string;
   title: string;
-  category: 'business' | 'marketing' | 'finance' | 'operations';
+  category: string;
   type: 'Dashboard' | 'Relatório';
   description: string;
   lastUpdated: string;
   isFavorite: boolean;
   thumbnail?: string;
   isNew: boolean;
+  embedUrl: string;
 }
 
-const EnhancedDashboard: React.FC = () => {
+const Dashboard: React.FC = () => {
   const [dashboards, setDashboards] = useState<Dashboard[]>([]);
   const [filter, setFilter] = useState<string>('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [selectedDashboard, setSelectedDashboard] = useState<Dashboard | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
-  // Simulando carregamento de dados
+  // Simulando carregamento de dados - seria substituído pela chamada API real
   useEffect(() => {
-    // Aqui seria a chamada API real
-    setTimeout(() => {
-      setDashboards([
-        {
-          id: '1',
-          title: 'Dashboard de Vendas',
-          category: 'business',
-          type: 'Dashboard',
-          description: 'Visão geral das vendas mensais e anuais',
-          lastUpdated: '14/03/2025',
-          isFavorite: true,
-          thumbnail: '/dashboard-vendas.jpg',
-          isNew: false
-        },
-        {
-          id: '2',
-          title: 'Análise de Marketing',
-          category: 'marketing',
-          type: 'Relatório',
-          description: 'Métricas de campanhas de marketing e ROI',
-          lastUpdated: '09/03/2025',
-          isFavorite: true,
-          thumbnail: '/marketing-analytics.jpg',
-          isNew: true
-        },
-        {
-          id: '3',
-          title: 'KPIs Financeiros',
-          category: 'finance',
-          type: 'Dashboard',
-          description: 'Indicadores-chave de performance financeira',
-          lastUpdated: '04/03/2025',
-          isFavorite: false,
-          thumbnail: '/kpis-financeiros.jpg',
-          isNew: false
-        },
-        {
-          id: '4',
-          title: 'Relatório de Operações',
-          category: 'operations',
-          type: 'Relatório',
-          description: 'Métricas operacionais e eficiência',
-          lastUpdated: '27/02/2025',
-          isFavorite: false,
-          thumbnail: '/relatorio-operacoes.jpg',
-          isNew: false
-        }
-      ]);
-      setIsLoading(false);
-    }, 1000);
+    const fetchDashboards = async () => {
+      setIsLoading(true);
+      try {
+        // Em produção, substituir por fetch real para /api/powerbi/reports
+        // const response = await fetch('/api/powerbi/reports');
+        // if (!response.ok) throw new Error('Erro ao carregar dashboards');
+        // const data = await response.json();
+
+        // Dados simulados para desenvolvimento
+        const mockData = [
+          {
+            id: '1',
+            title: 'Dashboard de Vendas',
+            category: 'business',
+            type: 'Dashboard',
+            description: 'Visão geral das vendas mensais e anuais',
+            lastUpdated: '14/03/2025',
+            isFavorite: true,
+            thumbnail: '/dashboard-vendas.jpg',
+            isNew: false,
+            embedUrl: 'https://app.powerbi.com/reportEmbed?reportId=f6bfd646-b718-44dc-a378-b73e6b528204'
+          },
+          {
+            id: '2',
+            title: 'Análise de Marketing',
+            category: 'marketing',
+            type: 'Relatório',
+            description: 'Métricas de campanhas de marketing e ROI',
+            lastUpdated: '09/03/2025',
+            isFavorite: true,
+            thumbnail: '/marketing-analytics.jpg',
+            isNew: true,
+            embedUrl: 'https://app.powerbi.com/reportEmbed?reportId=7cc1c1d5-5fb3-4bdb-bc7a-91c1e5453a34'
+          },
+          {
+            id: '3',
+            title: 'KPIs Financeiros',
+            category: 'finance',
+            type: 'Dashboard',
+            description: 'Indicadores-chave de performance financeira',
+            lastUpdated: '04/03/2025',
+            isFavorite: false,
+            thumbnail: '/kpis-financeiros.jpg',
+            isNew: false,
+            embedUrl: 'https://app.powerbi.com/reportEmbed?reportId=89a2f5d7-8e3c-4c29-9db4-1d4a30e4e9f8'
+          }
+        ];
+
+        setTimeout(() => {
+          setDashboards(mockData);
+          setIsLoading(false);
+        }, 1000);
+
+      } catch (error) {
+        console.error('Erro ao carregar dashboards:', error);
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboards();
   }, []);
+
+  // Efeito para fechar modal ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        setShowModal(false);
+      }
+    };
+
+    if (showModal) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showModal]);
 
   // Filtrar dashboards
   const filteredDashboards = dashboards.filter(dashboard => {
@@ -87,141 +119,179 @@ const EnhancedDashboard: React.FC = () => {
 
   // Separar dashboards em categorias
   const favorites = filteredDashboards.filter(d => d.isFavorite);
-  const recent = [...filteredDashboards].sort((a, b) =>
-    new Date(b.lastUpdated.split('/').reverse().join('-')).getTime() -
-    new Date(a.lastUpdated.split('/').reverse().join('-')).getTime()
-  ).slice(0, 4);
   const newItems = filteredDashboards.filter(d => d.isNew);
+
+  // Extrair categorias disponíveis
+  const categories = [...new Set(dashboards.map(d => d.category))];
+
+  // Função para lidar com click do dashboard
+  const handleDashboardClick = (dashboard: Dashboard) => {
+    setSelectedDashboard(dashboard);
+    setShowModal(true);
+  };
+
+  // Função para redirecionar para solicitação
+  const handleRequestDashboard = () => {
+    window.location.href = '/central-de-servicos';
+  };
+
+  // Função para adicionar/remover favoritos
+  const toggleFavorite = async (id: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+
+    // Em produção, enviar para a API
+    // const response = await fetch(`/api/powerbi/reports/${id}/favorite`, {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ favorite: !dashboards.find(d => d.id === id)?.isFavorite })
+    // });
+
+    // if (response.ok) {
+    //   setDashboards(prev => prev.map(d => 
+    //     d.id === id ? { ...d, isFavorite: !d.isFavorite } : d
+    //   ));
+    // }
+
+    // Simulação local
+    setDashboards(prev => prev.map(d =>
+      d.id === id ? { ...d, isFavorite: !d.isFavorite } : d
+    ));
+  };
 
   return (
     <DashboardLayout>
-      <div className="px-6 py-6 max-w-7xl mx-auto">
+      <div className="dashboard-container">
         {/* Cabeçalho com resumo */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Olá, Christiándeluco</h1>
+        <div className="dashboard-header">
+          <h1>Olá, Christiándeluco</h1>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-              <div className="flex items-center">
-                <div className="rounded-full bg-blue-100 dark:bg-blue-900 p-3 mr-4">
-                  <BarChart2 size={20} className="text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Total de Dashboards</p>
-                  <p className="text-xl font-bold text-gray-800 dark:text-white">{dashboards.length}</p>
-                </div>
-              </div>
+          <div className="search-bar">
+            <input
+              type="text"
+              placeholder="Buscar dashboards..."
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              aria-label="Buscar dashboards"
+            />
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </div>
+        </div>
+
+        <div className="dashboard-stats-grid">
+          <div className="stat-card">
+            <div className="stat-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="3" y1="9" x2="21" y2="9"></line>
+                <line x1="9" y1="21" x2="9" y2="9"></line>
+              </svg>
             </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-              <div className="flex items-center">
-                <div className="rounded-full bg-green-100 dark:bg-green-900 p-3 mr-4">
-                  <TrendingUp size={20} className="text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Taxa de Uso</p>
-                  <p className="text-xl font-bold text-gray-800 dark:text-white">87%</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-              <div className="flex items-center">
-                <div className="rounded-full bg-purple-100 dark:bg-purple-900 p-3 mr-4">
-                  <Clock size={20} className="text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Última Atualização</p>
-                  <p className="text-xl font-bold text-gray-800 dark:text-white">14/03</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-              <div className="flex items-center">
-                <div className="rounded-full bg-amber-100 dark:bg-amber-900 p-3 mr-4">
-                  <Bookmark size={20} className="text-amber-600 dark:text-amber-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Favoritos</p>
-                  <p className="text-xl font-bold text-gray-800 dark:text-white">{favorites.length}</p>
-                </div>
-              </div>
+            <div className="stat-content">
+              <div className="stat-title">Total de Dashboards</div>
+              <div className="stat-value">{dashboards.length}</div>
             </div>
           </div>
 
-          {/* Barra de busca e filtros */}
-          <div className="flex flex-col md:flex-row justify-between gap-4">
-            <div className="relative w-full md:w-96">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={18} className="text-gray-400" />
-              </div>
-              <input
-                type="text"
-                className="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Buscar dashboards..."
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-              />
+          <div className="stat-card">
+            <div className="stat-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                <polyline points="17 6 23 6 23 12"></polyline>
+              </svg>
             </div>
+            <div className="stat-content">
+              <div className="stat-title">Taxa de Uso</div>
+              <div className="stat-value">87%</div>
+            </div>
+          </div>
 
-            <div className="flex gap-2">
-              <button
-                className={`px-4 py-2 rounded-lg ${activeCategory === 'all' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'}`}
-                onClick={() => setActiveCategory('all')}
-              >
-                Todos
-              </button>
-              <button
-                className={`px-4 py-2 rounded-lg ${activeCategory === 'business' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'}`}
-                onClick={() => setActiveCategory('business')}
-              >
-                Negócios
-              </button>
-              <button
-                className={`px-4 py-2 rounded-lg ${activeCategory === 'marketing' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'}`}
-                onClick={() => setActiveCategory('marketing')}
-              >
-                Marketing
-              </button>
-              <button
-                className={`px-4 py-2 rounded-lg ${activeCategory === 'finance' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'}`}
-                onClick={() => setActiveCategory('finance')}
-              >
-                Financeiro
-              </button>
-              <button
-                className="p-2 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600"
-              >
-                <Filter size={20} />
-              </button>
+          <div className="stat-card">
+            <div className="stat-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <div className="stat-content">
+              <div className="stat-title">Última Atualização</div>
+              <div className="stat-value">14/03</div>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </div>
+            <div className="stat-content">
+              <div className="stat-title">Favoritos</div>
+              <div className="stat-value">{favorites.length}</div>
             </div>
           </div>
         </div>
 
-        {/* Seção de novidades - destaque especial */}
+        {/* Filtros de categoria */}
+        <div className="dashboard-tabs">
+          <button
+            className={`tab ${activeCategory === 'all' ? 'active' : ''}`}
+            onClick={() => setActiveCategory('all')}
+          >
+            Todos
+          </button>
+          {categories.map(category => (
+            <button
+              key={category}
+              className={`tab ${activeCategory === category ? 'active' : ''}`}
+              onClick={() => setActiveCategory(category)}
+            >
+              {category === 'business' ? 'Negócios' :
+                category === 'marketing' ? 'Marketing' :
+                  category === 'finance' ? 'Financeiro' :
+                    category === 'operations' ? 'Operações' :
+                      category}
+            </button>
+          ))}
+        </div>
+
+        {/* Seção de Solicitar Dashboard */}
+        <div className="dashboard-section">
+          <div className="request-dashboard-card" onClick={handleRequestDashboard}>
+            <div className="request-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="16"></line>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+              </svg>
+            </div>
+            <div className="request-content">
+              <h3>Solicitar Novo Dashboard</h3>
+              <p>Não encontrou o que procura? Solicite a criação de um novo dashboard personalizado.</p>
+              <button className="request-button">Solicitar Agora</button>
+            </div>
+          </div>
+        </div>
+
+        {/* Seção de novidades */}
         {newItems.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
-              <span className="inline-block bg-red-500 h-2 w-2 rounded-full mr-2"></span>
+          <div className="dashboard-section">
+            <h2 className="section-title">
+              <span className="new-indicator"></span>
               Novidades
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="featured-cards">
               {newItems.map(dashboard => (
-                <div key={dashboard.id} className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg overflow-hidden shadow-md transform transition-transform hover:scale-102 relative">
-                  <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-bl-md">
-                    NOVO
-                  </div>
-                  <div className="p-6 text-white">
-                    <h3 className="text-xl font-bold mb-2">{dashboard.title}</h3>
-                    <p className="mb-4 opacity-90">{dashboard.description}</p>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs opacity-80">Atualizado: {dashboard.lastUpdated}</span>
-                      <button className="bg-white text-blue-600 px-4 py-1.5 rounded-md text-sm font-medium hover:bg-gray-100">
-                        Ver agora
-                      </button>
-                    </div>
+                <div key={dashboard.id} className="featured-card" onClick={() => handleDashboardClick(dashboard)}>
+                  <div className="new-badge">NOVO</div>
+                  <h3>{dashboard.title}</h3>
+                  <p>{dashboard.description}</p>
+                  <div className="card-footer">
+                    <span>Atualizado: {dashboard.lastUpdated}</span>
+                    <button className="card-button" onClick={(e) => { e.stopPropagation(); handleDashboardClick(dashboard); }}>Ver agora</button>
                   </div>
                 </div>
               ))}
@@ -231,43 +301,42 @@ const EnhancedDashboard: React.FC = () => {
 
         {/* Seção de favoritos */}
         {favorites.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
-              <Bookmark size={18} className="mr-2 text-amber-500" />
+          <div className="dashboard-section">
+            <h2 className="section-title">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+              </svg>
               Seus Favoritos
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="reports-grid">
               {favorites.map(dashboard => (
-                <div key={dashboard.id} className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
-                  <div className="h-32 bg-gray-200 dark:bg-gray-700 relative">
+                <div key={dashboard.id} className="report-card" onClick={() => handleDashboardClick(dashboard)}>
+                  <div className="report-thumbnail">
                     {dashboard.thumbnail ? (
-                      <img src={dashboard.thumbnail} alt={dashboard.title} className="w-full h-full object-cover" />
+                      <img src={dashboard.thumbnail} alt={dashboard.title} />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <BarChart2 size={40} className="text-gray-400 dark:text-gray-500" />
+                      <div className="placeholder-thumbnail">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                          <line x1="3" y1="9" x2="21" y2="9"></line>
+                          <line x1="9" y1="21" x2="9" y2="9"></line>
+                        </svg>
                       </div>
                     )}
-                    <button className="absolute top-2 right-2 text-yellow-500">
-                      <Bookmark size={18} fill="currentColor" />
+                    <button className="favorite-button" onClick={(e) => toggleFavorite(dashboard.id, e)}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                      </svg>
                     </button>
                   </div>
-                  <div className="p-4">
-                    <div className="mb-2 flex items-center">
-                      <span className="text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
-                        {dashboard.type}
-                      </span>
-                    </div>
-                    <h3 className="font-semibold text-gray-800 dark:text-white mb-1">{dashboard.title}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-2">{dashboard.description}</p>
-                    <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
-                      <span className="flex items-center">
-                        <Clock size={14} className="mr-1" />
-                        {dashboard.lastUpdated}
-                      </span>
-                      <button className="text-blue-600 dark:text-blue-400 font-medium hover:underline">
-                        Abrir
-                      </button>
+                  <div className="report-info">
+                    <span className="report-type">{dashboard.type}</span>
+                    <h3 className="report-title">{dashboard.title}</h3>
+                    <p className="report-description">{dashboard.description}</p>
+                    <div className="report-footer">
+                      <span className="report-date">{dashboard.lastUpdated}</span>
+                      <button className="report-action" onClick={(e) => { e.stopPropagation(); handleDashboardClick(dashboard); }}>Abrir</button>
                     </div>
                   </div>
                 </div>
@@ -277,55 +346,53 @@ const EnhancedDashboard: React.FC = () => {
         )}
 
         {/* Todos os dashboards */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
-            Todos os Dashboards
-          </h2>
+        <div className="dashboard-section">
+          <h2 className="section-title">Todos os Dashboards</h2>
 
           {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+            <div className="loading-container">
+              <div className="loading-spinner"></div>
+              <p>Carregando dashboards...</p>
             </div>
           ) : filteredDashboards.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-8 text-center">
-              <p className="text-gray-600 dark:text-gray-400">Nenhum dashboard encontrado com os filtros selecionados.</p>
+            <div className="empty-state">
+              <h3>Nenhum dashboard encontrado</h3>
+              <p>Não encontramos dashboards correspondentes à sua busca.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="reports-grid">
               {filteredDashboards.map(dashboard => (
-                <div key={dashboard.id} className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
-                  <div className="h-40 bg-gray-200 dark:bg-gray-700 relative">
+                <div key={dashboard.id} className="report-card" onClick={() => handleDashboardClick(dashboard)}>
+                  <div className="report-thumbnail">
                     {dashboard.thumbnail ? (
-                      <img src={dashboard.thumbnail} alt={dashboard.title} className="w-full h-full object-cover" />
+                      <img src={dashboard.thumbnail} alt={dashboard.title} />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <BarChart2 size={48} className="text-gray-400 dark:text-gray-500" />
+                      <div className="placeholder-thumbnail">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                          <line x1="3" y1="9" x2="21" y2="9"></line>
+                          <line x1="9" y1="21" x2="9" y2="9"></line>
+                        </svg>
                       </div>
                     )}
-                    <button className="absolute top-2 right-2 text-gray-400 hover:text-yellow-500">
-                      <Bookmark size={18} fill={dashboard.isFavorite ? "currentColor" : "none"} />
+                    <button className={`favorite-button ${dashboard.isFavorite ? 'active' : ''}`} onClick={(e) => toggleFavorite(dashboard.id, e)}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill={dashboard.isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                      </svg>
                     </button>
                     {dashboard.isNew && (
-                      <div className="absolute top-0 left-0 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-br-md">
-                        NOVO
-                      </div>
+                      <div className="new-badge">NOVO</div>
                     )}
                   </div>
-                  <div className="p-4">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
-                        {dashboard.type}
-                      </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {dashboard.lastUpdated}
-                      </span>
+                  <div className="report-info">
+                    <div className="report-header">
+                      <span className="report-type">{dashboard.type}</span>
+                      <span className="report-date">{dashboard.lastUpdated}</span>
                     </div>
-                    <h3 className="font-semibold text-gray-800 dark:text-white mb-2">{dashboard.title}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{dashboard.description}</p>
-                    <div className="flex justify-end">
-                      <button className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
-                        Visualizar
-                      </button>
+                    <h3 className="report-title">{dashboard.title}</h3>
+                    <p className="report-description">{dashboard.description}</p>
+                    <div className="report-footer">
+                      <button className="report-action-primary" onClick={(e) => { e.stopPropagation(); handleDashboardClick(dashboard); }}>Visualizar</button>
                     </div>
                   </div>
                 </div>
@@ -333,9 +400,34 @@ const EnhancedDashboard: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Modal de Visualização do Power BI */}
+        {showModal && selectedDashboard && (
+          <div className="dashboard-modal-overlay">
+            <div className="dashboard-modal" ref={modalRef}>
+              <div className="dashboard-modal-header">
+                <h3>{selectedDashboard.title}</h3>
+                <button className="close-modal-button" onClick={() => setShowModal(false)}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+              <div className="dashboard-modal-content">
+                <iframe
+                  title={selectedDashboard.title}
+                  src={selectedDashboard.embedUrl}
+                  frameBorder="0"
+                  allowFullScreen={true}
+                ></iframe>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
 };
 
-export default EnhancedDashboard;
+export default Dashboard;

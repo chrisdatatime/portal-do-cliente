@@ -5,7 +5,6 @@ import React, { useState, useEffect } from 'react';
 import { simpleIsAuthenticated } from '@/lib/simple-auth';
 import '@/styles/admin.css';
 
-// Interface corrigida com campos opcionais
 interface UserData {
     id: string;
     email?: string;
@@ -23,13 +22,9 @@ export default function UserManagement() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
-
-    // Estado para o modal de adicionar/editar usuário
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [currentUser, setCurrentUser] = useState<UserData | null>(null);
-
-    // Estados para formulário
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -39,12 +34,9 @@ export default function UserManagement() {
         role: 'user',
         is_active: true
     });
-
-    // Estado para confirmação de exclusão
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
 
-    // Carregar usuários
     useEffect(() => {
         fetchUsers();
     }, []);
@@ -52,9 +44,6 @@ export default function UserManagement() {
     const fetchUsers = async () => {
         try {
             setLoading(true);
-            console.log('Buscando lista de usuários...');
-
-            // Buscar usuários da API
             const response = await fetch('/api/users', {
                 method: 'GET',
                 headers: {
@@ -68,18 +57,15 @@ export default function UserManagement() {
             }
 
             const data = await response.json();
-            console.log('Usuários carregados:', data.length);
             setUsers(data || []);
             setError('');
         } catch (err: any) {
-            console.error('Erro ao carregar usuários:', err);
             setError('Erro ao carregar usuários: ' + (err.message || 'Falha na requisição'));
         } finally {
             setLoading(false);
         }
     };
 
-    // Lidar com o formulário
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target as HTMLInputElement;
 
@@ -91,7 +77,6 @@ export default function UserManagement() {
         }
     };
 
-    // Abrir modal para adicionar usuário
     const handleAddUser = () => {
         setFormData({
             email: '',
@@ -106,12 +91,11 @@ export default function UserManagement() {
         setShowModal(true);
     };
 
-    // Abrir modal para editar usuário
     const handleEditUser = (user: UserData) => {
         setCurrentUser(user);
         setFormData({
             email: user.email || '',
-            password: '', // Não exibimos a senha atual
+            password: '',
             name: user.name || '',
             company: user.company || '',
             phone: user.phone || '',
@@ -122,13 +106,11 @@ export default function UserManagement() {
         setShowModal(true);
     };
 
-    // Mostrar confirmação de exclusão
     const handleConfirmDelete = (user: UserData) => {
         setUserToDelete(user);
         setShowDeleteConfirm(true);
     };
 
-    // Salvar formulário (adicionar ou editar)
     const handleSaveUser = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -136,13 +118,11 @@ export default function UserManagement() {
             setLoading(true);
 
             if (modalMode === 'add') {
-                // Validar senha para novos usuários
                 if (!formData.password || formData.password.length < 6) {
                     setError('A senha deve ter pelo menos 6 caracteres');
                     return;
                 }
 
-                console.log('Criando novo usuário...');
                 const response = await fetch('/api/users', {
                     method: 'POST',
                     headers: {
@@ -156,11 +136,8 @@ export default function UserManagement() {
                     throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
                 }
 
-                const data = await response.json();
-                console.log('Usuário criado:', data);
                 setSuccessMessage('Usuário criado com sucesso!');
             } else if (modalMode === 'edit' && currentUser) {
-                console.log('Atualizando usuário:', currentUser.id);
                 const response = await fetch(`/api/users/${currentUser.id}`, {
                     method: 'PUT',
                     headers: {
@@ -174,32 +151,25 @@ export default function UserManagement() {
                     throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
                 }
 
-                console.log('Usuário atualizado com sucesso');
                 setSuccessMessage('Usuário atualizado com sucesso!');
             }
 
-            // Fechar modal e atualizar lista
             setShowModal(false);
             await fetchUsers();
 
-            // Limpar mensagem de sucesso após 3 segundos
             setTimeout(() => setSuccessMessage(''), 3000);
         } catch (err: any) {
-            console.error('Erro ao salvar usuário:', err);
             setError('Erro ao salvar usuário: ' + (err.message || 'Falha na operação'));
         } finally {
             setLoading(false);
         }
     };
 
-    // Excluir usuário
     const handleDeleteUser = async () => {
         if (!userToDelete) return;
 
         try {
             setLoading(true);
-            console.log('Excluindo usuário:', userToDelete.id);
-
             const response = await fetch(`/api/users/${userToDelete.id}`, {
                 method: 'DELETE',
             });
@@ -213,17 +183,14 @@ export default function UserManagement() {
             setShowDeleteConfirm(false);
             await fetchUsers();
 
-            // Limpar mensagem de sucesso após 3 segundos
             setTimeout(() => setSuccessMessage(''), 3000);
         } catch (err: any) {
-            console.error('Erro ao excluir usuário:', err);
             setError('Erro ao excluir usuário: ' + (err.message || 'Falha na operação'));
         } finally {
             setLoading(false);
         }
     };
 
-    // Formatar data
     const formatDate = (dateString?: string) => {
         if (!dateString) return 'Nunca';
         return new Date(dateString).toLocaleString('pt-BR');

@@ -1,4 +1,3 @@
-// src/components/DashboardLayout.tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -44,14 +43,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     }
 
     return (
-        <div className="dashboard-root">
-            {/* Estrutura principal com sidebar e conteúdo */}
-            <div className="dashboard-container">
-                <Sidebar />
-                <main className="main-content">
-                    {children}
-                </main>
-            </div>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
+            {/* Sidebar */}
+            <Sidebar />
+
+            {/* Conteúdo principal */}
+            <main className="flex-1 p-6 overflow-auto main-content">
+                {children}
+            </main>
         </div>
     );
 };

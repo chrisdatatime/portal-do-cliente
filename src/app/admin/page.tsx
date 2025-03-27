@@ -1,16 +1,21 @@
+// src/app/admin/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { isAdmin } from '@/lib/simple-auth';
+import UserManagement from '@/components/admin/UserManagement';
+import ConnectionsManagement from '@/components/admin/ConnectionsManagement';
+import WorkspacesManagement from '@/components/admin/WorkspacesManagement';
+import SettingsManagement from '@/components/admin/SettingsManagement';
 import '@/styles/admin.css';
 
 // Definição de tabs para o painel administrativo
 type AdminTab = 'users' | 'connections' | 'workspaces' | 'settings';
 
 const AdminPage: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<AdminTab>('connections');
+    const [activeTab, setActiveTab] = useState<AdminTab>('users');
     const [isAuthorized, setIsAuthorized] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
@@ -23,7 +28,6 @@ const AdminPage: React.FC = () => {
                 const admin = await isAdmin();
 
                 if (!admin) {
-                    // Redirecionar usuários não-administradores para o dashboard
                     router.push('/dashboard');
                     return;
                 }
@@ -122,228 +126,6 @@ const AdminPage: React.FC = () => {
                 </div>
             </div>
         </DashboardLayout>
-    );
-};
-
-// Componente de gerenciamento de usuários
-const UserManagement: React.FC = () => {
-    return (
-        <div className="admin-section">
-            <h2>Gerenciamento de Usuários</h2>
-            <p className="admin-description">
-                Gerencie usuários, permissões e grupos de acesso.
-            </p>
-
-            {/* Conteúdo do componente UserManagement */}
-            <div className="admin-placeholder">
-                <span>Conteúdo do gerenciamento de usuários</span>
-            </div>
-        </div>
-    );
-};
-
-// Componente de gerenciamento de conexões
-const ConnectionsManagement: React.FC = () => {
-    const [showModal, setShowModal] = useState(false);
-
-    return (
-        <div className="admin-section">
-            <div className="admin-section-header">
-                <h2>Gerenciamento de Conexões</h2>
-                <button
-                    className="admin-button primary"
-                    onClick={() => setShowModal(true)}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    Nova Conexão
-                </button>
-            </div>
-
-            <p className="admin-description">
-                Configure e gerencie as integrações com plataformas externas.
-            </p>
-
-            {/* Lista de conexões */}
-            <div className="admin-card-grid">
-                <div className="admin-card">
-                    <div className="admin-card-header">
-                        <div className="connection-logo">
-                            {/* Placeholder para logo */}
-                            <div className="placeholder-logo">ML</div>
-                        </div>
-                        <div className="connection-info">
-                            <h3>Mercado Livre</h3>
-                            <span className="connection-type">E-commerce</span>
-                        </div>
-                        <div className="connection-status active">
-                            <span className="status-dot"></span>
-                            Funcionando
-                        </div>
-                    </div>
-                    <div className="admin-card-content">
-                        <p>Integração com a API do Mercado Livre para consulta de produtos, pedidos e métricas de vendas.</p>
-                        <div className="connection-details">
-                            <div className="detail-item">
-                                <span className="detail-label">API Key:</span>
-                                <span className="detail-value">••••••••••••1234</span>
-                            </div>
-                            <div className="detail-item">
-                                <span className="detail-label">Última sincronização:</span>
-                                <span className="detail-value">26/03/2025 14:30</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="admin-card-footer">
-                        <button className="admin-button secondary">Editar</button>
-                        <button className="admin-button danger">Remover</button>
-                    </div>
-                </div>
-
-                <div className="admin-card">
-                    <div className="admin-card-header">
-                        <div className="connection-logo">
-                            {/* Placeholder para logo */}
-                            <div className="placeholder-logo">Meta</div>
-                        </div>
-                        <div className="connection-info">
-                            <h3>Grupo Meta</h3>
-                            <span className="connection-type">Redes Sociais</span>
-                        </div>
-                        <div className="connection-status failed">
-                            <span className="status-dot"></span>
-                            Falha
-                        </div>
-                    </div>
-                    <div className="admin-card-content">
-                        <p>Integração com Facebook, Instagram e WhatsApp para métricas de campanhas e engajamento.</p>
-                        <div className="connection-details">
-                            <div className="detail-item">
-                                <span className="detail-label">API Key:</span>
-                                <span className="detail-value">••••••••••••5678</span>
-                            </div>
-                            <div className="detail-item">
-                                <span className="detail-label">Última sincronização:</span>
-                                <span className="detail-value">25/03/2025 10:15</span>
-                            </div>
-                            <div className="detail-item error">
-                                <span className="detail-label">Erro:</span>
-                                <span className="detail-value">Token de acesso expirado</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="admin-card-footer">
-                        <button className="admin-button secondary">Editar</button>
-                        <button className="admin-button danger">Remover</button>
-                    </div>
-                </div>
-
-                {/* Adicione mais cards conforme necessário */}
-            </div>
-
-            {/* Modal de adição de conexão */}
-            {showModal && (
-                <div className="admin-modal-overlay" onClick={() => setShowModal(false)}>
-                    <div className="admin-modal" onClick={e => e.stopPropagation()}>
-                        <div className="admin-modal-header">
-                            <h3>Nova Conexão</h3>
-                            <button
-                                className="close-button"
-                                onClick={() => setShowModal(false)}
-                            >
-                                &times;
-                            </button>
-                        </div>
-                        <div className="admin-modal-content">
-                            <form className="admin-form">
-                                <div className="admin-form-group">
-                                    <label htmlFor="connection-type">Tipo de Conexão</label>
-                                    <select id="connection-type">
-                                        <option value="">Selecione o tipo</option>
-                                        <option value="ecommerce">E-commerce</option>
-                                        <option value="social">Redes Sociais</option>
-                                        <option value="analytics">Analytics</option>
-                                        <option value="crm">CRM</option>
-                                    </select>
-                                </div>
-
-                                <div className="admin-form-group">
-                                    <label htmlFor="connection-name">Nome da Conexão</label>
-                                    <input type="text" id="connection-name" placeholder="Ex: Mercado Livre" />
-                                </div>
-
-                                <div className="admin-form-group">
-                                    <label htmlFor="connection-description">Descrição</label>
-                                    <input type="text" id="connection-description" placeholder="Descreva a finalidade desta conexão" />
-                                </div>
-
-                                <div className="admin-form-group">
-                                    <label htmlFor="connection-logo">Logo (URL)</label>
-                                    <input type="text" id="connection-logo" placeholder="https://exemplo.com/logo.png" />
-                                </div>
-
-                                <div className="admin-form-group">
-                                    <label htmlFor="connection-api-key">API Key</label>
-                                    <input type="text" id="connection-api-key" placeholder="Chave de API" />
-                                </div>
-
-                                <div className="admin-form-group">
-                                    <label htmlFor="connection-api-secret">API Secret</label>
-                                    <input type="password" id="connection-api-secret" placeholder="Segredo da API" />
-                                </div>
-
-                                <div className="admin-form-actions">
-                                    <button
-                                        type="button"
-                                        className="admin-button secondary"
-                                        onClick={() => setShowModal(false)}
-                                    >
-                                        Cancelar
-                                    </button>
-                                    <button type="submit" className="admin-button primary">Salvar</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
-// Componente de gerenciamento de workspaces
-const WorkspacesManagement: React.FC = () => {
-    return (
-        <div className="admin-section">
-            <h2>Gerenciamento de Workspaces</h2>
-            <p className="admin-description">
-                Configure workspaces do Power BI e controle permissões de acesso.
-            </p>
-
-            {/* Conteúdo do componente WorkspacesManagement */}
-            <div className="admin-placeholder">
-                <span>Conteúdo do gerenciamento de workspaces</span>
-            </div>
-        </div>
-    );
-};
-
-// Componente de configurações gerais
-const SettingsManagement: React.FC = () => {
-    return (
-        <div className="admin-section">
-            <h2>Configurações</h2>
-            <p className="admin-description">
-                Configure parâmetros gerais da plataforma.
-            </p>
-
-            {/* Conteúdo do componente SettingsManagement */}
-            <div className="admin-placeholder">
-                <span>Conteúdo de configurações gerais</span>
-            </div>
-        </div>
     );
 };
 

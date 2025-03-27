@@ -1,19 +1,16 @@
 /* src/styles/sidebar.css */
 .sidebar {
     position: fixed;
-    top: 64px;
-    /* Altura da navbar */
+    top: 0;
     left: 0;
+    height: 100vh;
     width: 240px;
-    height: calc(100vh - 64px);
+    z-index: 90;
     background-color: white;
     border-right: 1px solid #eaeaea;
-    z-index: 90;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
     transition: width 0.3s ease;
-    overflow-y: auto;
-    overflow-x: hidden;
-    display: flex;
-    flex-direction: column;
+    /* Remova padding-top se estiver definido */
 }
 
 .dark-mode .sidebar {
@@ -207,8 +204,8 @@
 /* Layout do conteúdo principal */
 .main-content {
     margin-left: 240px;
-    padding: 24px;
-    transition: margin-left 0.3s ease;
+    padding-top: 0;
+    /* Garante que não haja padding no topo */
     width: calc(100% - 240px);
 }
 
@@ -220,9 +217,9 @@
 /* Responsividade */
 @media (max-width: 768px) {
     .sidebar {
-        width: 240px;
-        transform: translateX(-100%);
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        height: auto;
+        position: relative;
     }
 
     .sidebar.expanded {
@@ -239,7 +236,6 @@
         width: 100%;
     }
 
-    .sidebar.expanded~.main-content,
     .sidebar.collapsed~.main-content {
         margin-left: 0;
         width: 100%;
