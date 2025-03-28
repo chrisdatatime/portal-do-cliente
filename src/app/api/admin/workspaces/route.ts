@@ -1,152 +1,91 @@
 // src/app/api/admin/workspaces/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { isAdmin } from '@/lib/simple-auth';
 
+// Define dynamic route para evitar cache
 export const dynamic = 'force-dynamic';
 
-// GET /api/admin/workspaces - List all workspaces
-export async function GET(request: Request) {
+// Inicializar cliente Supabase
+const initSupabase = () => {
+    return createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+        process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+        { auth: { persistSession: false } }
+    );
+};
+
+// GET /api/admin/workspaces - Listar todos os workspaces
+export async function GET(request: NextRequest) {
     try {
-        // Verify admin permission
-        const isUserAdmin = await isAdmin();
-        if (!isUserAdmin) {
-            return NextResponse.json(
-                { error: 'Permissão negada. Apenas administradores podem acessar workspaces.' },
-                { status: 403 }
-            );
+        // Verificar se o usuário é administrador
+        const adminCheck = await isAdmin();
+        if (!adminCheck.isAdmin) {
+            return NextResponse.json({ error: 'Acesso negado. Apenas administradores podem acessar esta API.' }, { status: 403 });
         }
 
-        // Initialize Supabase client
-        const supabaseAdmin = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-            process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-            { auth: { persistSession: false } }
-        );
+        const supabase = initSupabase();
 
-        // Fetch workspaces
-        const { data: workspaces, error: workspacesError } = await supabaseAdmin
+        // Buscar todos os workspaces
+        const { data, error } = await supabase
             .from('workspaces')
             .select('*')
-            .order('created_at', { ascending: false });
+            .order('name');
 
-        if (workspacesError) {
-            return NextResponse.json(
-                { error: 'Erro ao buscar workspaces: ' + workspacesError.message },
-                { status: 500 }
-            );
+        if (error) {
+            console.error('Erro ao buscar workspaces:', error);
+            return NextResponse.json({ error: 'Erro ao buscar workspaces' }, { status: 500 });
         }
 
-        // Fetch workspace-company associations
-        const { data: associations, error: associationsError } = await supabaseAdmin
-            .from('workspace_companies')
-            .select('workspace_id, company_id');
-
-        if (associationsError) {
-            return NextResponse.json(
-                { error: 'Erro ao buscar associações: ' + associationsError.message },
-                { status: 500 }
-            );
-        }
-
-        // Group associations by workspace
-        const workspaceCompanies: Record<string, string[]> = {};
-        associations.forEach(assoc => {
-            if (!workspaceCompanies[assoc.workspace_id]) {
-                workspaceCompanies[assoc.workspace_id] = [];
-            }
-            workspaceCompanies[assoc.workspace_id].push(assoc.company_id);
-        });
-
-        // Add company IDs to each workspace
-        const enhancedWorkspaces = workspaces.map(workspace => ({
-            ...workspace,
-            companies: workspaceCompanies[workspace.id] || []
-        }));
-
-        return NextResponse.json(enhancedWorkspaces);
+        return NextResponse.json(data);
     } catch (error: any) {
-        console.error('Erro ao listar workspaces:', error);
-        return NextResponse.json(
-            { error: error.message || 'Erro interno do servidor' },
-            { status: 500 }
-        );
+        console.error('Erro no servidor:', error);
+        return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
     }
 }
 
-// POST /api/admin/workspaces - Create a new workspace
-export async function POST(request: Request) {
+// POST /api/admin/workspaces - Criar um novo workspace
+export async function POST(request: NextRequest) {
     try {
-        // Verify admin permission
-        const isUserAdmin = await isAdmin();
-        if (!isUserAdmin) {
-            return NextResponse.json(
-                { error: 'Permissão negada. Apenas administradores podem criar workspaces.' },
-                { status: 403 }
-            );
+        // Verificar se o usuário é administrador
+        const adminCheck = await isAdmin();
+        if (!adminCheck.isAdmin) {
+            return NextResponse.json({ error: 'Acesso negado. Apenas administradores podem acessar esta API.' }, { status: 403 });
         }
 
-        // Get request data
-        const workspaceData = await request.json();
-        const { name, description, owner, companies = [] } = workspaceData;
+        // Extrair dados da requisição
+        const body = await request.json();
 
-        if (!name) {
-            return NextResponse.json(
-                { error: 'Nome do workspace é obrigatório' },
-                { status: 400 }
-            );
+        // Validar dados obrigatórios
+        if (!body.name) {
+            return NextResponse.json({ error: 'Nome do workspace é obrigatório' }, { status: 400 });
         }
 
-        // Initialize Supabase client
-        const supabaseAdmin = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-            process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-            { auth: { persistSession: false } }
-        );
+        const supabase = initSupabase();
 
-        // Create workspace
-        const { data: workspace, error: workspaceError } = await supabaseAdmin
+        // Inserir o workspace na tabela
+        const { data, error } = await supabase
             .from('workspaces')
             .insert({
-                name,
-                description,
-                owner,
-                created_at: new Date().toISOString(),
-                report_count: 0
+                name: body.name,
+                description: body.description || null
             })
-            .select('*')
+            .select()
             .single();
 
-        if (workspaceError) {
-            return NextResponse.json(
-                { error: 'Erro ao criar workspace: ' + workspaceError.message },
-                { status: 500 }
-            );
-        }
+        if (error) {
+            console.error('Erro ao criar workspace:', error);
 
-        // Link companies to workspace if provided
-        if (companies.length > 0) {
-            const associations = companies.map(companyId => ({
-                workspace_id: workspace.id,
-                company_id: companyId
-            }));
-
-            const { error: linkError } = await supabaseAdmin
-                .from('workspace_companies')
-                .insert(associations);
-
-            if (linkError) {
-                console.error('Erro ao vincular empresas:', linkError);
-                // We still return success, but log the error
+            if (error.code === '23505') {
+                return NextResponse.json({ error: 'Já existe um workspace com este nome' }, { status: 409 });
             }
+
+            return NextResponse.json({ error: 'Erro ao criar workspace' }, { status: 500 });
         }
 
-        return NextResponse.json(workspace, { status: 201 });
+        return NextResponse.json({ message: 'Workspace criado com sucesso', workspace: data }, { status: 201 });
     } catch (error: any) {
-        console.error('Erro ao criar workspace:', error);
-        return NextResponse.json(
-            { error: error.message || 'Erro interno do servidor' },
-            { status: 500 }
-        );
+        console.error('Erro no servidor:', error);
+        return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
     }
 }

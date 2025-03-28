@@ -1,9 +1,8 @@
 // src/app/admin/page.tsx
 'use client';
 
-
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { isAdmin } from '@/lib/simple-auth';
 import UserManagement from '@/components/admin/UserManagement';
@@ -13,15 +12,22 @@ import SettingsManagement from '@/components/admin/SettingsManagement';
 import CompanyManagement from '@/components/admin/CompanyManagement';
 import '@/styles/admin.css';
 
-
 // Definição de tabs para o painel administrativo
 type AdminTab = 'users' | 'connections' | 'workspaces' | 'settings' | 'companies';
 
 const AdminPage: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<AdminTab>('users');
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const tabParam = searchParams.get('tab') as AdminTab | null;
+
+    // Usar o valor do parâmetro de URL ou o padrão 'users'
+    const [activeTab, setActiveTab] = useState<AdminTab>(() => {
+        return (tabParam && ['users', 'connections', 'workspaces', 'settings', 'companies'].includes(tabParam))
+            ? tabParam as AdminTab
+            : 'users';
+    });
     const [isAuthorized, setIsAuthorized] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const router = useRouter();
 
     // Verificar se o usuário tem permissões de administrador
     useEffect(() => {
@@ -47,13 +53,40 @@ const AdminPage: React.FC = () => {
         checkAdmin();
     }, [router]);
 
+    // Atualizar a URL quando a aba mudar - usando useCallback para evitar dependência cíclica
+    const updateUrlWithTab = useCallback((tab: AdminTab) => {
+        if (isAuthorized) {
+            const params = new URLSearchParams(searchParams.toString());
+            params.set('tab', tab);
+            router.replace(`/admin?${params.toString()}`, { scroll: false });
+        }
+    }, [isAuthorized, router, searchParams]);
+
+    // Handler para mudança de tab
+    const handleTabChange = useCallback((tab: AdminTab) => {
+        if (tab !== activeTab) {
+            setActiveTab(tab);
+            updateUrlWithTab(tab);
+        }
+    }, [activeTab, updateUrlWithTab]);
+
+    // Garantir sincronização com parâmetros URL
+    useEffect(() => {
+        // Apenas atualiza se o param da URL existir, for válido e diferente do estado atual
+        if (tabParam &&
+            ['users', 'connections', 'workspaces', 'settings', 'companies'].includes(tabParam) &&
+            tabParam !== activeTab) {
+            setActiveTab(tabParam as AdminTab);
+        }
+    }, [tabParam, activeTab]);
+
     // Componentes para cada tab
-    const TabComponents = {
+    const TabComponents: Record<AdminTab, React.ReactNode> = {
         users: <UserManagement />,
         connections: <ConnectionsManagement />,
         workspaces: <WorkspacesManagement />,
         settings: <SettingsManagement />,
-        companies: <CompanyManagement />  // Adicione esta linha
+        companies: <CompanyManagement />
     };
 
     if (isLoading) {
@@ -81,7 +114,7 @@ const AdminPage: React.FC = () => {
                 <div className="admin-nav">
                     <button
                         className={`admin-nav-item ${activeTab === 'users' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('users')}
+                        onClick={() => handleTabChange('users')}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -93,7 +126,7 @@ const AdminPage: React.FC = () => {
                     </button>
                     <button
                         className={`admin-nav-item ${activeTab === 'connections' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('connections')}
+                        onClick={() => handleTabChange('connections')}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
@@ -103,7 +136,7 @@ const AdminPage: React.FC = () => {
                     </button>
                     <button
                         className={`admin-nav-item ${activeTab === 'workspaces' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('workspaces')}
+                        onClick={() => handleTabChange('workspaces')}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <rect x="3" y="3" width="7" height="7"></rect>
@@ -115,7 +148,7 @@ const AdminPage: React.FC = () => {
                     </button>
                     <button
                         className={`admin-nav-item ${activeTab === 'companies' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('companies')}
+                        onClick={() => handleTabChange('companies')}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
@@ -125,7 +158,7 @@ const AdminPage: React.FC = () => {
                     </button>
                     <button
                         className={`admin-nav-item ${activeTab === 'settings' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('settings')}
+                        onClick={() => handleTabChange('settings')}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="12" cy="12" r="3"></circle>

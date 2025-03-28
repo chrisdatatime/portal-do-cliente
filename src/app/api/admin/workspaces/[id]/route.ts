@@ -1,212 +1,317 @@
-// src/app/api/companies/[id]/route.ts
+// src/app/api/admin/workspaces/[id]/route.ts
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { isAdmin } from '@/lib/simple-auth';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/companies/[id] - Obter detalhes de uma empresa
+// Função utilitária para inicializar o cliente Supabase
+const initSupabase = () => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Variáveis de ambiente do Supabase não configuradas');
+    }
+
+    return createClient(
+        supabaseUrl,
+        supabaseKey,
+        {
+            auth: { persistSession: false },
+            global: { headers: { 'X-Client-Info': 'admin-workspaces-api' } }
+        }
+    );
+};
+
+// GET /api/admin/workspaces/[id] - Obter detalhes de um workspace específico
 export async function GET(
     request: Request,
     { params }: { params: { id: string } }
 ) {
     try {
-        const id = params.id;
+        // Verificar se o usuário é administrador
+        const adminStatus = await isAdmin();
+        if (!adminStatus) {
+            return NextResponse.json(
+                { error: 'Acesso não autorizado. Apenas administradores podem acessar esta API.' },
+                { status: 403 }
+            );
+        }
 
-        // Inicializar cliente Supabase
-        const supabaseAdmin = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-            process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-            { auth: { persistSession: false } }
-        );
+        const { id } = params;
+        if (!id) {
+            return NextResponse.json(
+                { error: 'ID do workspace é obrigatório' },
+                { status: 400 }
+            );
+        }
 
-        // Buscar empresa
-        const { data: company, error } = await supabaseAdmin
-            .from('companies')
+        const supabaseAdmin = initSupabase();
+
+        // Buscar workspace pelo ID
+        const { data: workspace, error: workspaceError } = await supabaseAdmin
+            .from('workspaces')
             .select('*')
             .eq('id', id)
             .single();
 
-        if (error) {
-            if (error.code === 'PGRST116') {
+        if (workspaceError) {
+            console.error(`Erro ao buscar workspace ${id}:`, workspaceError);
+
+            if (workspaceError.code === 'PGRST116') {
                 return NextResponse.json(
-                    { error: 'Empresa não encontrada' },
+                    { error: 'Workspace não encontrado' },
                     { status: 404 }
                 );
             }
+
             return NextResponse.json(
-                { error: 'Erro ao buscar empresa: ' + error.message },
+                { error: `Erro ao buscar workspace: ${workspaceError.message}` },
                 { status: 500 }
             );
         }
 
-        // Contar usuários
-        const { count, error: countError } = await supabaseAdmin
-            .from('profiles')
-            .select('*', { count: 'exact', head: true })
-            .eq('company_id', id)
-            .eq('is_active', true);
+        // Buscar associações de empresas
+        try {
+            const { data: associations, error: associationsError } = await supabaseAdmin
+                .from('workspace_companies')
+                .select('company_id')
+                .eq('workspace_id', id);
 
-        if (countError) {
-            console.error('Erro ao contar usuários:', countError);
+            if (!associationsError && associations) {
+                const companies = associations.map(a => a.company_id);
+                return NextResponse.json({ ...workspace, companies });
+            }
+
+            // Se houver erro nas associações, apenas retorna o workspace sem elas
+            return NextResponse.json({ ...workspace, companies: [] });
+        } catch (error) {
+            // Erro nas associações não deve impedir de retornar o workspace
+            console.warn(`Erro ao buscar associações para workspace ${id}:`, error);
+            return NextResponse.json({ ...workspace, companies: [] });
         }
-
-        return NextResponse.json({
-            ...company,
-            user_count: count || 0
-        });
     } catch (error: any) {
-        console.error('Erro ao obter empresa:', error);
+        console.error('Erro ao obter detalhes do workspace:', error);
         return NextResponse.json(
-            { error: error.message || 'Erro interno do servidor' },
+            { error: `Erro interno do servidor: ${error.message || 'Erro desconhecido'}` },
             { status: 500 }
         );
     }
 }
 
-// PUT /api/companies/[id] - Atualizar empresa
+// PUT /api/admin/workspaces/[id] - Atualizar um workspace existente
 export async function PUT(
     request: Request,
     { params }: { params: { id: string } }
 ) {
     try {
-        const id = params.id;
-
         // Verificar se o usuário é administrador
-        const isUserAdmin = await isAdmin();
-        if (!isUserAdmin) {
+        const adminStatus = await isAdmin();
+        if (!adminStatus) {
             return NextResponse.json(
-                { error: 'Permissão negada. Apenas administradores podem atualizar empresas.' },
+                { error: 'Acesso não autorizado. Apenas administradores podem atualizar workspaces.' },
                 { status: 403 }
             );
         }
 
-        // Inicializar cliente Supabase
-        const supabaseAdmin = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-            process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-            { auth: { persistSession: false } }
-        );
+        const { id } = params;
+        if (!id) {
+            return NextResponse.json(
+                { error: 'ID do workspace é obrigatório' },
+                { status: 400 }
+            );
+        }
 
-        // Obter dados da requisição
         const updateData = await request.json();
+        const { name, description, owner, companies } = updateData;
 
-        // Verificar se a empresa existe
-        const { data: existingCompany, error: checkError } = await supabaseAdmin
-            .from('companies')
+        if (!name) {
+            return NextResponse.json(
+                { error: 'Nome do workspace é obrigatório' },
+                { status: 400 }
+            );
+        }
+
+        const supabaseAdmin = initSupabase();
+
+        // Verificar se o workspace existe
+        const { data: existingWorkspace, error: checkError } = await supabaseAdmin
+            .from('workspaces')
             .select('id')
             .eq('id', id)
             .single();
 
-        if (checkError || !existingCompany) {
+        if (checkError) {
+            if (checkError.code === 'PGRST116') {
+                return NextResponse.json(
+                    { error: 'Workspace não encontrado' },
+                    { status: 404 }
+                );
+            }
+
             return NextResponse.json(
-                { error: 'Empresa não encontrada' },
-                { status: 404 }
-            );
-        }
-
-        // Preparar objeto para atualização
-        const updatedCompany = {
-            ...(updateData.name && { name: updateData.name }),
-            ...(updateData.description !== undefined && { description: updateData.description }),
-            ...(updateData.logo && { logo_url: updateData.logo }),
-            updated_at: new Date().toISOString()
-        };
-
-        // Atualizar empresa
-        const { data, error } = await supabaseAdmin
-            .from('companies')
-            .update(updatedCompany)
-            .eq('id', id)
-            .select('*')
-            .single();
-
-        if (error) {
-            return NextResponse.json(
-                { error: 'Erro ao atualizar empresa: ' + error.message },
+                { error: `Erro ao verificar workspace: ${checkError.message}` },
                 { status: 500 }
             );
         }
 
-        return NextResponse.json(data);
+        // Atualizar workspace
+        const { data: workspace, error: updateError } = await supabaseAdmin
+            .from('workspaces')
+            .update({
+                name,
+                description,
+                owner,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id)
+            .select('*')
+            .single();
+
+        if (updateError) {
+            console.error(`Erro ao atualizar workspace ${id}:`, updateError);
+            return NextResponse.json(
+                { error: `Erro ao atualizar workspace: ${updateError.message}` },
+                { status: 500 }
+            );
+        }
+
+        // Atualizar associações de empresas se fornecidas
+        if (Array.isArray(companies)) {
+            try {
+                // Primeiro remover associações existentes
+                const { error: deleteError } = await supabaseAdmin
+                    .from('workspace_companies')
+                    .delete()
+                    .eq('workspace_id', id);
+
+                if (deleteError) {
+                    console.warn(`Erro ao remover associações do workspace ${id}:`, deleteError);
+                }
+
+                // Adicionar novas associações se houver empresas
+                if (companies.length > 0) {
+                    const associations = companies.map(companyId => ({
+                        workspace_id: id,
+                        company_id: companyId
+                    }));
+
+                    const { error: insertError } = await supabaseAdmin
+                        .from('workspace_companies')
+                        .insert(associations);
+
+                    if (insertError) {
+                        console.warn(`Erro ao adicionar associações ao workspace ${id}:`, insertError);
+                        return NextResponse.json({
+                            ...workspace,
+                            companies: [],
+                            warning: `Workspace atualizado, mas houve erro ao vincular empresas: ${insertError.message}`
+                        });
+                    }
+                }
+
+                return NextResponse.json({ ...workspace, companies });
+            } catch (error: any) {
+                console.warn(`Erro ao gerenciar associações do workspace ${id}:`, error);
+                return NextResponse.json({
+                    ...workspace,
+                    companies: [],
+                    warning: `Workspace atualizado, mas houve erro ao gerenciar associações: ${error.message || 'Erro desconhecido'}`
+                });
+            }
+        }
+
+        // Se não foram fornecidas empresas, retornar apenas o workspace atualizado
+        return NextResponse.json(workspace);
     } catch (error: any) {
-        console.error('Erro ao atualizar empresa:', error);
+        console.error('Erro ao atualizar workspace:', error);
         return NextResponse.json(
-            { error: error.message || 'Erro interno do servidor' },
+            { error: `Erro interno do servidor: ${error.message || 'Erro desconhecido'}` },
             { status: 500 }
         );
     }
 }
 
-// DELETE /api/companies/[id] - Remover empresa
+// DELETE /api/admin/workspaces/[id] - Excluir um workspace
 export async function DELETE(
     request: Request,
     { params }: { params: { id: string } }
 ) {
     try {
-        const id = params.id;
-
         // Verificar se o usuário é administrador
-        const isUserAdmin = await isAdmin();
-        if (!isUserAdmin) {
+        const adminStatus = await isAdmin();
+        if (!adminStatus) {
             return NextResponse.json(
-                { error: 'Permissão negada. Apenas administradores podem remover empresas.' },
+                { error: 'Acesso não autorizado. Apenas administradores podem excluir workspaces.' },
                 { status: 403 }
             );
         }
 
-        // Inicializar cliente Supabase
-        const supabaseAdmin = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-            process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-            { auth: { persistSession: false } }
-        );
-
-        // Verificar se a empresa existe
-        const { data: existingCompany, error: checkError } = await supabaseAdmin
-            .from('companies')
-            .select('id')
-            .eq('id', id)
-            .single();
-
-        if (checkError || !existingCompany) {
+        const { id } = params;
+        if (!id) {
             return NextResponse.json(
-                { error: 'Empresa não encontrada' },
-                { status: 404 }
-            );
-        }
-
-        // Verificar se há usuários associados à empresa
-        const { count, error: countError } = await supabaseAdmin
-            .from('profiles')
-            .select('*', { count: 'exact', head: true })
-            .eq('company_id', id);
-
-        if (count && count > 0) {
-            return NextResponse.json(
-                { error: 'Não é possível excluir empresa com usuários associados' },
+                { error: 'ID do workspace é obrigatório' },
                 { status: 400 }
             );
         }
 
-        // Remover empresa
-        const { error } = await supabaseAdmin
-            .from('companies')
-            .delete()
-            .eq('id', id);
+        const supabaseAdmin = initSupabase();
 
-        if (error) {
+        // Verificar se o workspace existe
+        const { data: existingWorkspace, error: checkError } = await supabaseAdmin
+            .from('workspaces')
+            .select('id')
+            .eq('id', id)
+            .single();
+
+        if (checkError) {
+            if (checkError.code === 'PGRST116') {
+                return NextResponse.json(
+                    { error: 'Workspace não encontrado' },
+                    { status: 404 }
+                );
+            }
+
             return NextResponse.json(
-                { error: 'Erro ao remover empresa: ' + error.message },
+                { error: `Erro ao verificar workspace: ${checkError.message}` },
                 { status: 500 }
             );
         }
 
-        return NextResponse.json({ success: true });
-    } catch (error: any) {
-        console.error('Erro ao remover empresa:', error);
+        // Primeiro remover associações
+        try {
+            await supabaseAdmin
+                .from('workspace_companies')
+                .delete()
+                .eq('workspace_id', id);
+        } catch (error: any) {
+            console.warn(`Erro ao remover associações do workspace ${id}:`, error);
+            // Continuar com a exclusão do workspace mesmo se houver erro nas associações
+        }
+
+        // Excluir o workspace
+        const { error: deleteError } = await supabaseAdmin
+            .from('workspaces')
+            .delete()
+            .eq('id', id);
+
+        if (deleteError) {
+            console.error(`Erro ao excluir workspace ${id}:`, deleteError);
+            return NextResponse.json(
+                { error: `Erro ao excluir workspace: ${deleteError.message}` },
+                { status: 500 }
+            );
+        }
+
         return NextResponse.json(
-            { error: error.message || 'Erro interno do servidor' },
+            { message: 'Workspace excluído com sucesso' },
+            { status: 200 }
+        );
+    } catch (error: any) {
+        console.error('Erro ao excluir workspace:', error);
+        return NextResponse.json(
+            { error: `Erro interno do servidor: ${error.message || 'Erro desconhecido'}` },
             { status: 500 }
         );
     }

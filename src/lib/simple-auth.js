@@ -164,14 +164,53 @@ export const simpleRequestPasswordReset = async (email) => {
     }
 };
 
-// Adicione isto ao src/lib/simple-auth.js
-
 // Verificar se o usuário atual tem privilégios de administrador
 export const isAdmin = async () => {
     try {
+        console.log('Verificando permissões de administrador...');
+
+        // Verificar se estamos em ambiente de servidor (não tem window/localStorage)
+        const isServer = typeof window === 'undefined';
+        console.log('Ambiente de execução:', isServer ? 'Servidor' : 'Cliente');
+
+        // Tentar obter usuário da sessão do Supabase
         const { data: { user } } = await supabase.auth.getUser();
 
-        if (!user) return false;
+        // Se não encontrou usuário e estamos no cliente, tentar recuperar do localStorage
+        if (!user && !isServer) {
+            console.log('Usuário não encontrado na sessão do Supabase, verificando localStorage...');
+            const userEmail = localStorage.getItem('userEmail');
+            const isAuthenticated = localStorage.getItem('isAuthenticated');
+
+            if (!userEmail || !isAuthenticated) {
+                console.log('Dados de autenticação não encontrados no localStorage');
+                return { isAdmin: false };
+            }
+
+            console.log('Encontrado usuário no localStorage:', userEmail);
+
+            // Buscar usuário pelo email
+            const { data: userByEmail, error: userError } = await supabase
+                .from('profiles')
+                .select('id, role')
+                .eq('email', userEmail)
+                .single();
+
+            if (userError || !userByEmail) {
+                console.error('Erro ao buscar usuário pelo email:', userError);
+                return { isAdmin: false };
+            }
+
+            console.log('Papel do usuário recuperado pelo email:', userByEmail.role);
+            return { isAdmin: userByEmail.role === 'admin' };
+        }
+
+        if (!user) {
+            console.log('Usuário não autenticado');
+            return { isAdmin: false };
+        }
+
+        console.log('Usuário autenticado:', user.email);
 
         // Verificar na tabela de profiles se o usuário é admin
         const { data, error } = await supabase
@@ -180,11 +219,94 @@ export const isAdmin = async () => {
             .eq('id', user.id)
             .single();
 
-        if (error || !data) return false;
+        if (error) {
+            console.error('Erro ao buscar perfil do usuário:', error);
 
-        return data.role === 'admin';
+            // Como fallback, tentar buscar pelo email
+            console.log('Tentando buscar perfil pelo email...');
+            const { data: profileByEmail, error: emailError } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('email', user.email)
+                .single();
+
+            if (emailError || !profileByEmail) {
+                console.error('Erro ao buscar perfil pelo email:', emailError);
+                return { isAdmin: false };
+            }
+
+            console.log('Papel do usuário (via email):', profileByEmail.role);
+            return { isAdmin: profileByEmail.role === 'admin' };
+        }
+
+        if (!data) {
+            console.log('Perfil não encontrado para o usuário');
+            return { isAdmin: false };
+        }
+
+        console.log('Papel do usuário encontrado:', data.role);
+
+        // Guarda a informação no localStorage apenas no cliente
+        if (!isServer && data.role === 'admin') {
+            localStorage.setItem('isAdmin', 'true');
+        }
+
+        return { isAdmin: data.role === 'admin' };
     } catch (error) {
-        console.error('Erro ao verificar privilégios de administrador:', error);
+        console.error('Erro ao verificar permissões de administrador:', error);
+        return { isAdmin: false };
+    }
+};
+
+// Verificação de autenticação robusta
+export const robustIsAuthenticated = async () => {
+    try {
+        const isServer = typeof window === 'undefined';
+        console.log('Verificando autenticação em ambiente:', isServer ? 'Servidor' : 'Cliente');
+
+        // Verificar com Supabase primeiro
+        const { data } = await supabase.auth.getSession();
+
+        if (data.session) {
+            console.log('Usuário autenticado via sessão Supabase');
+            return true;
+        }
+
+        // Se não tem sessão e estamos no cliente, verificar localStorage
+        if (!isServer) {
+            const isAuthenticatedStorage = localStorage.getItem('isAuthenticated');
+            const userEmail = localStorage.getItem('userEmail');
+
+            if (isAuthenticatedStorage === 'true' && userEmail) {
+                console.log('Usuário autenticado via localStorage');
+
+                // Tentar restaurar a sessão
+                try {
+                    // Realizar login silencioso ou renovar token
+                    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+
+                    if (!refreshError && refreshData?.session) {
+                        console.log('Sessão restaurada com sucesso');
+                        return true;
+                    }
+                } catch (refreshError) {
+                    console.error('Erro ao tentar restaurar sessão:', refreshError);
+                }
+
+                // Mesmo que não consiga restaurar a sessão, retornar true
+                // se temos dados no localStorage (confiamos no localStorage)
+                return true;
+            }
+        }
+
+        return false;
+    } catch (error) {
+        console.error('Erro ao verificar autenticação robusta:', error);
+
+        // Em caso de erro, confiamos no localStorage como último recurso (apenas no cliente)
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('isAuthenticated') === 'true';
+        }
         return false;
     }
 };

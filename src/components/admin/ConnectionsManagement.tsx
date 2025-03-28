@@ -1,7 +1,7 @@
 // src/components/admin/ConnectionsManagement.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import '@/styles/admin.css';
 
@@ -10,7 +10,7 @@ interface Connection {
     name: string;
     logo: string;
     status: 'active' | 'failed' | 'pending';
-    lastSync: string;
+    lastSync?: string;
     type: string;
     description?: string;
     config?: Record<string, any>;
@@ -28,10 +28,12 @@ export default function ConnectionsManagement() {
         name: '',
         type: '',
         description: '',
-        logo: '',
         api_key: '',
         api_secret: '',
     });
+    const [logoFile, setLogoFile] = useState<File | null>(null);
+    const [logoPreview, setLogoPreview] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         fetchConnections();
@@ -40,7 +42,7 @@ export default function ConnectionsManagement() {
     const fetchConnections = async () => {
         try {
             setLoading(true);
-            const response = await fetch('/api/connections');
+            const response = await fetch('/connections/api');
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -62,15 +64,49 @@ export default function ConnectionsManagement() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Verificar tamanho e tipo
+        if (file.size > 5 * 1024 * 1024) { // 5MB
+            setError('A imagem deve ter no máximo 5MB');
+            return;
+        }
+
+        if (!file.type.startsWith('image/')) {
+            setError('O arquivo deve ser uma imagem');
+            return;
+        }
+
+        // Exibir preview
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setLogoPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+
+        setLogoFile(file);
+    };
+
+    const handleLogoClear = () => {
+        setLogoFile(null);
+        setLogoPreview(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
     const handleAddConnection = () => {
         setFormData({
             name: '',
             type: '',
             description: '',
-            logo: '',
             api_key: '',
             api_secret: '',
         });
+        setLogoFile(null);
+        setLogoPreview(null);
         setShowModal(true);
     };
 
@@ -79,10 +115,11 @@ export default function ConnectionsManagement() {
             name: connection.name,
             type: connection.type,
             description: connection.description || '',
-            logo: connection.logo,
             api_key: connection.config?.api_key || '',
             api_secret: connection.config?.api_secret || '',
         });
+        setLogoPreview(connection.logo);
+        setLogoFile(null);
         setShowModal(true);
     };
 
@@ -102,21 +139,31 @@ export default function ConnectionsManagement() {
         try {
             setLoading(true);
 
-            const connectionData = {
-                name: formData.name,
-                type: formData.type,
-                description: formData.description,
-                logo: formData.logo,
-                config: {
-                    api_key: formData.api_key,
-                    api_secret: formData.api_secret,
-                }
-            };
+            // Usar FormData para enviar imagem
+            const formDataToSend = new FormData();
+            formDataToSend.append('name', formData.name);
+            formDataToSend.append('type', formData.type);
 
-            const response = await fetch('/api/connections', {
+            if (formData.description) {
+                formDataToSend.append('description', formData.description);
+            }
+
+            if (formData.api_key) {
+                formDataToSend.append('api_key', formData.api_key);
+            }
+
+            if (formData.api_secret) {
+                formDataToSend.append('api_secret', formData.api_secret);
+            }
+
+            // Adicionar imagem caso tenha sido selecionada
+            if (logoFile) {
+                formDataToSend.append('logo', logoFile);
+            }
+
+            const response = await fetch('/connections/api', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(connectionData),
+                body: formDataToSend,
             });
 
             if (!response.ok) {
@@ -141,7 +188,7 @@ export default function ConnectionsManagement() {
 
         try {
             setLoading(true);
-            const response = await fetch(`/api/connections/${connectionToDelete.id}`, {
+            const response = await fetch(`/connections/api/${connectionToDelete.id}`, {
                 method: 'DELETE',
             });
 
@@ -162,7 +209,41 @@ export default function ConnectionsManagement() {
         }
     };
 
-    const formatDate = (dateString: string) => {
+    const handleUpdateConnectionStatus = async (connection: Connection, newStatus: 'active' | 'failed' | 'pending') => {
+        try {
+            setLoading(true);
+            const response = await fetch(`/connections/api/${connection.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+            }
+
+            setSuccessMessage(`Status da conexão atualizado para ${getStatusLabel(newStatus)}`);
+            await fetchConnections();
+            setTimeout(() => setSuccessMessage(''), 3000);
+        } catch (err: any) {
+            setError('Erro ao atualizar status: ' + (err.message || 'Falha na operação'));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getStatusLabel = (status: string) => {
+        switch (status) {
+            case 'active': return 'Funcionando';
+            case 'failed': return 'Falha';
+            case 'pending': return 'Pendente';
+            default: return status;
+        }
+    };
+
+    const formatDate = (dateString?: string) => {
+        if (!dateString) return '-';
         return new Date(dateString).toLocaleString('pt-BR');
     };
 
@@ -194,6 +275,17 @@ export default function ConnectionsManagement() {
 
             {loading && connections.length === 0 ? (
                 <div className="admin-loading">Carregando conexões...</div>
+            ) : error ? (
+                <div className="admin-error-display">
+                    <p>Não foi possível carregar as conexões:</p>
+                    <p>{error}</p>
+                    <button
+                        className="admin-button primary"
+                        onClick={fetchConnections}
+                    >
+                        Tentar novamente
+                    </button>
+                </div>
             ) : (
                 <div className="admin-card-grid">
                     {connections.length === 0 ? (
@@ -228,6 +320,32 @@ export default function ConnectionsManagement() {
                                         {connection.status === 'active' && 'Funcionando'}
                                         {connection.status === 'failed' && 'Falha'}
                                         {connection.status === 'pending' && 'Pendente'}
+                                        <div className="status-controls">
+                                            <button
+                                                className={`status-button ${connection.status === 'active' ? 'active' : ''}`}
+                                                onClick={() => handleUpdateConnectionStatus(connection, 'active')}
+                                                disabled={connection.status === 'active'}
+                                                title="Marcar como funcionando"
+                                            >
+                                                ✓
+                                            </button>
+                                            <button
+                                                className={`status-button ${connection.status === 'failed' ? 'active' : ''}`}
+                                                onClick={() => handleUpdateConnectionStatus(connection, 'failed')}
+                                                disabled={connection.status === 'failed'}
+                                                title="Marcar como falha"
+                                            >
+                                                ✗
+                                            </button>
+                                            <button
+                                                className={`status-button ${connection.status === 'pending' ? 'active' : ''}`}
+                                                onClick={() => handleUpdateConnectionStatus(connection, 'pending')}
+                                                disabled={connection.status === 'pending'}
+                                                title="Marcar como pendente"
+                                            >
+                                                ⌛
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="admin-card-content">
@@ -316,15 +434,43 @@ export default function ConnectionsManagement() {
                                 </div>
 
                                 <div className="admin-form-group">
-                                    <label htmlFor="logo">Logo (URL)</label>
-                                    <input
-                                        type="text"
-                                        id="logo"
-                                        name="logo"
-                                        value={formData.logo}
-                                        onChange={handleInputChange}
-                                        placeholder="https://exemplo.com/logo.png"
-                                    />
+                                    <label htmlFor="logo">Logo</label>
+                                    <div className="logo-upload-container">
+                                        {logoPreview && (
+                                            <div className="logo-preview">
+                                                <Image
+                                                    src={logoPreview}
+                                                    alt="Preview"
+                                                    width={100}
+                                                    height={100}
+                                                    style={{ objectFit: 'contain' }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="remove-logo-button"
+                                                    onClick={handleLogoClear}
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        <input
+                                            type="file"
+                                            id="logo"
+                                            name="logo"
+                                            accept="image/*"
+                                            onChange={handleLogoChange}
+                                            ref={fileInputRef}
+                                            className="file-input"
+                                        />
+                                        <label htmlFor="logo" className="file-input-label">
+                                            {logoFile ? 'Trocar imagem' : 'Escolher imagem'}
+                                        </label>
+                                        <p className="file-input-help">
+                                            Formatos aceitos: JPG, PNG, SVG. Tamanho máximo: 5MB
+                                        </p>
+                                    </div>
                                 </div>
 
                                 <div className="admin-form-group">

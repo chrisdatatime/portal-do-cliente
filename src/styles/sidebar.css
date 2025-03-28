@@ -258,3 +258,83 @@
         z-index: 99;
     }
 }
+
+/* Estilos para o botão de logout - adicione ao final de src/styles/sidebar.css */
+
+.logout-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: #f44336;
+    background: none;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.logout-button:hover {
+    background-color: rgba(244, 67, 54, 0.1);
+}
+
+.dark-mode .logout-button {
+    color: #ef5350;
+}
+
+.dark-mode .logout-button:hover {
+    background-color: rgba(244, 67, 54, 0.2);
+}
+
+.sidebar-footer .logout-button {
+    margin-top: 10px;
+    justify-content: center;
+}
+
+/* Para versão mobile */
+.navbar-mobile-menu .logout-button {
+    width: 100%;
+    justify-content: flex-start;
+    margin-top: 16px;
+    border-top: 1px solid #eaeaea;
+    padding-top: 16px;
+}
+
+.dark-mode .navbar-mobile-menu .logout-button {
+    border-top-color: #333;
+}
+
+/* Adicione ao final de src/styles/sidebar.css */
+
+.sidebar-footer-collapsed {
+    display: flex;
+    justify-content: center;
+    padding: 16px 0;
+    margin-top: auto;
+    border-top: 1px solid #eaeaea;
+}
+
+.dark-mode .sidebar-footer-collapsed {
+    border-top-color: #333;
+}
+
+.sidebar-footer-collapsed .logout-button {
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Garantir que o sidebar tenha layout flexível para empurrar o footer para baixo */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+}
+
+.menu-container {
+    flex: 1;
+    overflow-y: auto;
+}

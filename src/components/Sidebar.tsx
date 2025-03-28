@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { simpleGetUser, isAdmin } from '@/lib/simple-auth';
+import LogoutButton from '@/components/LogoutButton';
 
 interface MenuItem {
     title: string;
@@ -216,6 +217,14 @@ const Sidebar: React.FC = () => {
                 <div className="sidebar-footer">
                     <div className="version">Portal do Cliente v2.0</div>
                     <div className="copyright">&copy; {new Date().getFullYear()} Binove</div>
+                    <LogoutButton />
+                </div>
+            )}
+
+            {/* Botão de logout compacto para sidebar recolhida */}
+            {!isExpanded && (
+                <div className="sidebar-footer-collapsed">
+                    <LogoutButton showText={false} />
                 </div>
             )}
         </div>

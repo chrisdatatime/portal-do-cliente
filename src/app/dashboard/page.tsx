@@ -3,14 +3,19 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
+import WorkspaceManager from '@/components/workspace/WorkspaceManager';
+import { isStorageAvailable } from '@/lib/storage-utils';
 import '@/styles/dashboard.css';
+
+// Verificar se estamos no navegador
+const isBrowser = typeof window !== 'undefined';
 
 // Definição de tipos
 interface Dashboard {
   id: string;
   title: string;
   category: string;
-  type: string;  // Este campo pode estar causando problemas - verifique se é uma string ou outro tipo
+  type: string;
   description: string;
   lastUpdated: string;
   isFavorite: boolean;
@@ -19,72 +24,62 @@ interface Dashboard {
   embedUrl: string;
 }
 
+interface UserRole {
+  isOwner: boolean;
+  isAdmin: boolean;
+  workspaceId: string;
+}
+
 const Dashboard: React.FC = () => {
   const [dashboards, setDashboards] = useState<Dashboard[]>([]);
   const [filter, setFilter] = useState<string>('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
   const [showModal, setShowModal] = useState<boolean>(false);
   const [selectedDashboard, setSelectedDashboard] = useState<Dashboard | null>(null);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Simulando carregamento de dados - seria substituído pela chamada API real
+  // Verificar papel do usuário
+  useEffect(() => {
+    const checkUserRole = async () => {
+      try {
+        const response = await fetch('/api/user/role');
+        if (!response.ok) throw new Error('Falha ao verificar papel do usuário');
+        const data = await response.json();
+        setUserRole(data);
+      } catch (err) {
+        console.error('Erro ao verificar papel do usuário:', err);
+      }
+    };
+
+    checkUserRole();
+  }, []);
+
+  // Carregar dashboards da API
   useEffect(() => {
     const fetchDashboards = async () => {
+      // Verificar se estamos no navegador e se o localStorage está disponível
+      if (!isStorageAvailable()) return;
+
       setIsLoading(true);
+      setError('');
+
       try {
-        // Em produção, substituir por fetch real para /api/powerbi/reports
-        // const response = await fetch('/api/powerbi/reports');
-        // if (!response.ok) throw new Error('Erro ao carregar dashboards');
-        // const data = await response.json();
+        const response = await fetch('/api/dashboards');
 
-        // Dados simulados para desenvolvimento
-        const mockData: Dashboard[] = [
-          {
-            id: "1",
-            title: "Dashboard de Vendas",
-            category: "business",
-            type: "Dashboard", // Certifique-se de que este valor é do tipo esperado
-            description: "Visão geral das vendas mensais e anuais",
-            lastUpdated: "14/03/2025",
-            isFavorite: true,
-            thumbnail: "/dashboard-vendas.jpg",
-            isNew: false,
-            embedUrl: "https://app.powerbi.com/reportEmbed?reportId=f6bfd646-b718-44dc-a378-b73e6b528204"
-          },
-          {
-            id: '2',
-            title: 'Análise de Marketing',
-            category: 'marketing',
-            type: 'Relatório',
-            description: 'Métricas de campanhas de marketing e ROI',
-            lastUpdated: '09/03/2025',
-            isFavorite: true,
-            thumbnail: '/marketing-analytics.jpg',
-            isNew: true,
-            embedUrl: 'https://app.powerbi.com/reportEmbed?reportId=7cc1c1d5-5fb3-4bdb-bc7a-91c1e5453a34'
-          },
-          {
-            id: '3',
-            title: 'KPIs Financeiros',
-            category: 'finance',
-            type: 'Dashboard',
-            description: 'Indicadores-chave de performance financeira',
-            lastUpdated: '04/03/2025',
-            isFavorite: false,
-            thumbnail: '/kpis-financeiros.jpg',
-            isNew: false,
-            embedUrl: 'https://app.powerbi.com/reportEmbed?reportId=89a2f5d7-8e3c-4c29-9db4-1d4a30e4e9f8'
-          }
-        ];
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+        }
 
-        setTimeout(() => {
-          setDashboards(mockData);
-          setIsLoading(false);
-        }, 1000);
-
-      } catch (error) {
+        const data = await response.json();
+        setDashboards(data);
+      } catch (error: any) {
         console.error('Erro ao carregar dashboards:', error);
+        setError(error.message || 'Erro ao carregar dashboards');
+      } finally {
         setIsLoading(false);
       }
     };
@@ -139,293 +134,328 @@ const Dashboard: React.FC = () => {
   const toggleFavorite = async (id: string, event: React.MouseEvent) => {
     event.stopPropagation();
 
-    // Em produção, enviar para a API
-    // const response = await fetch(`/api/powerbi/reports/${id}/favorite`, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ favorite: !dashboards.find(d => d.id === id)?.isFavorite })
-    // });
+    try {
+      const currentFavoriteStatus = dashboards.find(d => d.id === id)?.isFavorite || false;
 
-    // if (response.ok) {
-    //   setDashboards(prev => prev.map(d => 
-    //     d.id === id ? { ...d, isFavorite: !d.isFavorite } : d
-    //   ));
-    // }
+      // Atualizar localmente para feedback imediato
+      setDashboards(prev => prev.map(d =>
+        d.id === id ? { ...d, isFavorite: !d.isFavorite } : d
+      ));
 
-    // Simulação local
-    setDashboards(prev => prev.map(d =>
-      d.id === id ? { ...d, isFavorite: !d.isFavorite } : d
-    ));
+      // Enviar para a API
+      const response = await fetch('/api/dashboards/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dashboard_id: id,
+          is_favorite: !currentFavoriteStatus
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+
+        // Reverter mudança local em caso de falha
+        setDashboards(prev => prev.map(d =>
+          d.id === id ? { ...d, isFavorite: currentFavoriteStatus } : d
+        ));
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar favorito:', error);
+    }
   };
+
+  // Formatar data para exibição
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR');
+  };
+
+  // Mostrar um botão de solicitação se não houver dashboards
+  if (!isLoading && dashboards.length === 0 && !error) {
+    return (
+      <DashboardLayout>
+        <div className="dashboard-container">
+          <div className="dashboard-empty-state">
+            <h2>Nenhum dashboard disponível</h2>
+            <p>Não há dashboards disponíveis para sua empresa no momento.</p>
+            <button
+              className="dashboard-request-button"
+              onClick={handleRequestDashboard}
+            >
+              Solicitar Dashboard
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
-      <div className="dashboard-container">
-        {/* Cabeçalho com resumo */}
-        <div className="dashboard-header">
-          <h1>Olá, Christiándeluco</h1>
+      {userRole?.isOwner ? (
+        <WorkspaceManager workspaceId={userRole.workspaceId} />
+      ) : (
+        <div className="dashboard-container">
+          {/* Cabeçalho com resumo */}
+          <div className="dashboard-header">
+            <h1>Dashboards</h1>
 
-          <div className="search-bar">
-            <input
-              type="text"
-              placeholder="Buscar dashboards..."
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              aria-label="Buscar dashboards"
-            />
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-          </div>
-        </div>
-
-        <div className="dashboard-stats-grid">
-          <div className="stat-card">
-            <div className="stat-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="3" y1="9" x2="21" y2="9"></line>
-                <line x1="9" y1="21" x2="9" y2="9"></line>
+            <div className="search-bar">
+              <input
+                type="text"
+                placeholder="Buscar dashboards..."
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                aria-label="Buscar dashboards"
+              />
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
             </div>
-            <div className="stat-content">
-              <div className="stat-title">Total de Dashboards</div>
-              <div className="stat-value">{dashboards.length}</div>
-            </div>
           </div>
 
-          <div className="stat-card">
-            <div className="stat-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-                <polyline points="17 6 23 6 23 12"></polyline>
-              </svg>
+          {error && (
+            <div className="dashboard-error">
+              <p>{error}</p>
+              <button
+                className="dashboard-retry-button"
+                onClick={() => window.location.reload()}
+              >
+                Tentar novamente
+              </button>
             </div>
-            <div className="stat-content">
-              <div className="stat-title">Taxa de Uso</div>
-              <div className="stat-value">87%</div>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12 6 12 12 16 14"></polyline>
-              </svg>
-            </div>
-            <div className="stat-content">
-              <div className="stat-title">Última Atualização</div>
-              <div className="stat-value">14/03</div>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-              </svg>
-            </div>
-            <div className="stat-content">
-              <div className="stat-title">Favoritos</div>
-              <div className="stat-value">{favorites.length}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Filtros de categoria */}
-        <div className="dashboard-tabs">
-          <button
-            className={`tab ${activeCategory === 'all' ? 'active' : ''}`}
-            onClick={() => setActiveCategory('all')}
-          >
-            Todos
-          </button>
-          {categories.map(category => (
-            <button
-              key={category}
-              className={`tab ${activeCategory === category ? 'active' : ''}`}
-              onClick={() => setActiveCategory(category)}
-            >
-              {category === 'business' ? 'Negócios' :
-                category === 'marketing' ? 'Marketing' :
-                  category === 'finance' ? 'Financeiro' :
-                    category === 'operations' ? 'Operações' :
-                      category}
-            </button>
-          ))}
-        </div>
-
-        {/* Seção de Solicitar Dashboard */}
-        <div className="dashboard-section">
-          <div className="request-dashboard-card" onClick={handleRequestDashboard}>
-            <div className="request-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="16"></line>
-                <line x1="8" y1="12" x2="16" y2="12"></line>
-              </svg>
-            </div>
-            <div className="request-content">
-              <h3>Solicitar Novo Dashboard</h3>
-              <p>Não encontrou o que procura? Solicite a criação de um novo dashboard personalizado.</p>
-              <button className="request-button">Solicitar Agora</button>
-            </div>
-          </div>
-        </div>
-
-        {/* Seção de novidades */}
-        {newItems.length > 0 && (
-          <div className="dashboard-section">
-            <h2 className="section-title">
-              <span className="new-indicator"></span>
-              Novidades
-            </h2>
-
-            <div className="featured-cards">
-              {newItems.map(dashboard => (
-                <div key={dashboard.id} className="featured-card" onClick={() => handleDashboardClick(dashboard)}>
-                  <div className="new-badge">NOVO</div>
-                  <h3>{dashboard.title}</h3>
-                  <p>{dashboard.description}</p>
-                  <div className="card-footer">
-                    <span>Atualizado: {dashboard.lastUpdated}</span>
-                    <button className="card-button" onClick={(e) => { e.stopPropagation(); handleDashboardClick(dashboard); }}>Ver agora</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Seção de favoritos */}
-        {favorites.length > 0 && (
-          <div className="dashboard-section">
-            <h2 className="section-title">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-              </svg>
-              Seus Favoritos
-            </h2>
-
-            <div className="reports-grid">
-              {favorites.map(dashboard => (
-                <div key={dashboard.id} className="report-card" onClick={() => handleDashboardClick(dashboard)}>
-                  <div className="report-thumbnail">
-                    {dashboard.thumbnail ? (
-                      <img src={dashboard.thumbnail} alt={dashboard.title} />
-                    ) : (
-                      <div className="placeholder-thumbnail">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                          <line x1="3" y1="9" x2="21" y2="9"></line>
-                          <line x1="9" y1="21" x2="9" y2="9"></line>
-                        </svg>
-                      </div>
-                    )}
-                    <button className="favorite-button" onClick={(e) => toggleFavorite(dashboard.id, e)}>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-                      </svg>
-                    </button>
-                  </div>
-                  <div className="report-info">
-                    <span className="report-type">{dashboard.type}</span>
-                    <h3 className="report-title">{dashboard.title}</h3>
-                    <p className="report-description">{dashboard.description}</p>
-                    <div className="report-footer">
-                      <span className="report-date">{dashboard.lastUpdated}</span>
-                      <button className="report-action" onClick={(e) => { e.stopPropagation(); handleDashboardClick(dashboard); }}>Abrir</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Todos os dashboards */}
-        <div className="dashboard-section">
-          <h2 className="section-title">Todos os Dashboards</h2>
+          )}
 
           {isLoading ? (
-            <div className="loading-container">
+            <div className="dashboard-loading">
               <div className="loading-spinner"></div>
               <p>Carregando dashboards...</p>
             </div>
-          ) : filteredDashboards.length === 0 ? (
-            <div className="empty-state">
-              <h3>Nenhum dashboard encontrado</h3>
-              <p>Não encontramos dashboards correspondentes à sua busca.</p>
-            </div>
           ) : (
-            <div className="reports-grid">
-              {filteredDashboards.map(dashboard => (
-                <div key={dashboard.id} className="report-card" onClick={() => handleDashboardClick(dashboard)}>
-                  <div className="report-thumbnail">
-                    {dashboard.thumbnail ? (
-                      <img src={dashboard.thumbnail} alt={dashboard.title} />
-                    ) : (
-                      <div className="placeholder-thumbnail">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                          <line x1="3" y1="9" x2="21" y2="9"></line>
-                          <line x1="9" y1="21" x2="9" y2="9"></line>
-                        </svg>
-                      </div>
-                    )}
-                    <button className={`favorite-button ${dashboard.isFavorite ? 'active' : ''}`} onClick={(e) => toggleFavorite(dashboard.id, e)}>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill={dashboard.isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-                      </svg>
-                    </button>
-                    {dashboard.isNew && (
-                      <div className="new-badge">NOVO</div>
-                    )}
+            <>
+              <div className="dashboard-stats-grid">
+                <div className="stat-card">
+                  <div className="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="3" y1="9" x2="21" y2="9"></line>
+                      <line x1="9" y1="21" x2="9" y2="9"></line>
+                    </svg>
                   </div>
-                  <div className="report-info">
-                    <div className="report-header">
-                      <span className="report-type">{dashboard.type}</span>
-                      <span className="report-date">{dashboard.lastUpdated}</span>
-                    </div>
-                    <h3 className="report-title">{dashboard.title}</h3>
-                    <p className="report-description">{dashboard.description}</p>
-                    <div className="report-footer">
-                      <button className="report-action-primary" onClick={(e) => { e.stopPropagation(); handleDashboardClick(dashboard); }}>Visualizar</button>
-                    </div>
+                  <div className="stat-content">
+                    <div className="stat-title">Total de Dashboards</div>
+                    <div className="stat-value">{dashboards.length}</div>
                   </div>
                 </div>
-              ))}
+
+                <div className="stat-card">
+                  <div className="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                  </div>
+                  <div className="stat-content">
+                    <div className="stat-title">Favoritos</div>
+                    <div className="stat-value">{favorites.length}</div>
+                  </div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                  </div>
+                  <div className="stat-content">
+                    <div className="stat-title">Novos</div>
+                    <div className="stat-value">{newItems.length}</div>
+                  </div>
+                </div>
+
+                <div className="stat-card request-card" onClick={handleRequestDashboard}>
+                  <div className="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                  </div>
+                  <div className="stat-content">
+                    <div className="stat-title">Solicitar</div>
+                    <div className="stat-action">Dashboard</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Filtros de categoria */}
+              {categories.length > 0 && (
+                <div className="dashboard-tabs">
+                  <button
+                    className={`tab ${activeCategory === 'all' ? 'active' : ''}`}
+                    onClick={() => setActiveCategory('all')}
+                  >
+                    Todos
+                  </button>
+                  {categories.map(category => (
+                    <button
+                      key={category}
+                      className={`tab ${activeCategory === category ? 'active' : ''}`}
+                      onClick={() => setActiveCategory(category)}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Seção de favoritos */}
+              {favorites.length > 0 && (
+                <div className="dashboard-section">
+                  <h2 className="section-title">Favoritos</h2>
+                  <div className="reports-grid">
+                    {favorites.map(dashboard => (
+                      <div key={dashboard.id} className="report-card" onClick={() => handleDashboardClick(dashboard)}>
+                        <div className="report-header">
+                          <div className="report-thumbnail" style={{ backgroundImage: dashboard.thumbnail ? `url(${dashboard.thumbnail})` : 'none' }}>
+                            {!dashboard.thumbnail && <div className="thumbnail-placeholder">{dashboard.title.charAt(0)}</div>}
+                            <button
+                              className={`favorite-button ${dashboard.isFavorite ? 'active' : ''}`}
+                              onClick={(e) => toggleFavorite(dashboard.id, e)}
+                              aria-label={dashboard.isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill={dashboard.isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                        <div className="report-info">
+                          <span className="report-type">{dashboard.type}</span>
+                          <h3 className="report-title">{dashboard.title}</h3>
+                          <p className="report-description">{dashboard.description}</p>
+                          <div className="report-footer">
+                            <span className="report-date">{formatDate(dashboard.lastUpdated)}</span>
+                            <button className="report-action" onClick={(e) => { e.stopPropagation(); handleDashboardClick(dashboard); }}>Abrir</button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Novos dashboards */}
+              {newItems.length > 0 && (
+                <div className="dashboard-section">
+                  <h2 className="section-title">Novidades</h2>
+                  <div className="reports-grid">
+                    {newItems.map(dashboard => (
+                      <div key={dashboard.id} className="report-card new" onClick={() => handleDashboardClick(dashboard)}>
+                        <div className="report-header">
+                          <div className="report-thumbnail" style={{ backgroundImage: dashboard.thumbnail ? `url(${dashboard.thumbnail})` : 'none' }}>
+                            {!dashboard.thumbnail && <div className="thumbnail-placeholder">{dashboard.title.charAt(0)}</div>}
+                            <button
+                              className={`favorite-button ${dashboard.isFavorite ? 'active' : ''}`}
+                              onClick={(e) => toggleFavorite(dashboard.id, e)}
+                              aria-label={dashboard.isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill={dashboard.isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                              </svg>
+                            </button>
+                            <div className="new-badge">Novo</div>
+                          </div>
+                        </div>
+                        <div className="report-info">
+                          <span className="report-type">{dashboard.type}</span>
+                          <h3 className="report-title">{dashboard.title}</h3>
+                          <p className="report-description">{dashboard.description}</p>
+                          <div className="report-footer">
+                            <span className="report-date">{formatDate(dashboard.lastUpdated)}</span>
+                            <button className="report-action" onClick={(e) => { e.stopPropagation(); handleDashboardClick(dashboard); }}>Abrir</button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Todos os dashboards */}
+              <div className="dashboard-section">
+                <h2 className="section-title">Todos os Dashboards</h2>
+                {filteredDashboards.length === 0 ? (
+                  <div className="no-results">
+                    <p>Nenhum dashboard encontrado para "{filter}"</p>
+                    <button className="clear-filter" onClick={() => setFilter('')}>
+                      Limpar filtro
+                    </button>
+                  </div>
+                ) : (
+                  <div className="reports-grid">
+                    {filteredDashboards.map(dashboard => (
+                      <div key={dashboard.id} className="report-card" onClick={() => handleDashboardClick(dashboard)}>
+                        <div className="report-header">
+                          <div className="report-thumbnail" style={{ backgroundImage: dashboard.thumbnail ? `url(${dashboard.thumbnail})` : 'none' }}>
+                            {!dashboard.thumbnail && <div className="thumbnail-placeholder">{dashboard.title.charAt(0)}</div>}
+                            <button
+                              className={`favorite-button ${dashboard.isFavorite ? 'active' : ''}`}
+                              onClick={(e) => toggleFavorite(dashboard.id, e)}
+                              aria-label={dashboard.isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill={dashboard.isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                              </svg>
+                            </button>
+                            {dashboard.isNew && <div className="new-badge">Novo</div>}
+                          </div>
+                        </div>
+                        <div className="report-info">
+                          <span className="report-type">{dashboard.type}</span>
+                          <h3 className="report-title">{dashboard.title}</h3>
+                          <p className="report-description">{dashboard.description}</p>
+                          <div className="report-footer">
+                            <span className="report-date">{formatDate(dashboard.lastUpdated)}</span>
+                            <button className="report-action" onClick={(e) => { e.stopPropagation(); handleDashboardClick(dashboard); }}>Abrir</button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Modal de visualização de dashboard */}
+          {showModal && selectedDashboard && (
+            <div className="dashboard-modal-overlay">
+              <div className="dashboard-modal" ref={modalRef}>
+                <div className="dashboard-modal-header">
+                  <h3>{selectedDashboard.title}</h3>
+                  <button className="close-modal-button" onClick={() => setShowModal(false)}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
+                <div className="dashboard-modal-content">
+                  <iframe
+                    title={selectedDashboard.title}
+                    src={selectedDashboard.embedUrl}
+                    frameBorder="0"
+                    allowFullScreen={true}
+                  ></iframe>
+                </div>
+              </div>
             </div>
           )}
         </div>
-
-        {/* Modal de Visualização do Power BI */}
-        {showModal && selectedDashboard && (
-          <div className="dashboard-modal-overlay">
-            <div className="dashboard-modal" ref={modalRef}>
-              <div className="dashboard-modal-header">
-                <h3>{selectedDashboard.title}</h3>
-                <button className="close-modal-button" onClick={() => setShowModal(false)}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </button>
-              </div>
-              <div className="dashboard-modal-content">
-                <iframe
-                  title={selectedDashboard.title}
-                  src={selectedDashboard.embedUrl}
-                  frameBorder="0"
-                  allowFullScreen={true}
-                ></iframe>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      )}
     </DashboardLayout>
   );
 };

@@ -37,7 +37,7 @@ export default function CompanyManagement() {
     const fetchCompanies = async () => {
         try {
             setLoading(true);
-            const response = await fetch('/api/companies');
+            const response = await fetch('/api/admin/companies');
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -102,8 +102,8 @@ export default function CompanyManagement() {
 
             const method = currentCompany ? 'PUT' : 'POST';
             const url = currentCompany
-                ? `/api/companies/${currentCompany.id}`
-                : '/api/companies';
+                ? `/api/admin/companies/${currentCompany.id}`
+                : '/api/admin/companies';
 
             const response = await fetch(url, {
                 method,
@@ -134,7 +134,7 @@ export default function CompanyManagement() {
         try {
             setLoading(true);
 
-            const response = await fetch(`/api/companies/${companyToDelete.id}`, {
+            const response = await fetch(`/api/admin/companies/${companyToDelete.id}`, {
                 method: 'DELETE'
             });
 

@@ -10,6 +10,7 @@ interface UserData {
     email?: string;
     name?: string;
     company?: string;
+    company_id?: string;
     phone?: string;
     role?: string;
     created_at?: string;
@@ -17,8 +18,16 @@ interface UserData {
     is_active?: boolean;
 }
 
+interface Company {
+    id: string;
+    name: string;
+    logo_url?: string;
+    description?: string;
+}
+
 export default function UserManagement() {
     const [users, setUsers] = useState<UserData[]>([]);
+    const [companies, setCompanies] = useState<Company[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
@@ -30,6 +39,7 @@ export default function UserManagement() {
         password: '',
         name: '',
         company: '',
+        company_id: '',
         phone: '',
         role: 'user',
         is_active: true
@@ -39,21 +49,6 @@ export default function UserManagement() {
 
     useEffect(() => {
         fetchUsers();
-    }, []);
-
-    useEffect(() => {
-        const fetchCompanies = async () => {
-            try {
-                const response = await fetch('/api/companies');
-                if (response.ok) {
-                    const data = await response.json();
-                    setCompanies(data);
-                }
-            } catch (error) {
-                console.error('Erro ao buscar empresas:', error);
-            }
-        };
-
         fetchCompanies();
     }, []);
 
@@ -82,6 +77,20 @@ export default function UserManagement() {
         }
     };
 
+    const fetchCompanies = async () => {
+        try {
+            const response = await fetch('/api/companies');
+            if (response.ok) {
+                const data = await response.json();
+                setCompanies(data);
+            } else {
+                console.error('Erro ao buscar empresas');
+            }
+        } catch (error) {
+            console.error('Erro ao buscar empresas:', error);
+        }
+    };
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target as HTMLInputElement;
 
@@ -94,11 +103,13 @@ export default function UserManagement() {
     };
 
     const handleAddUser = () => {
+        setCurrentUser(null);
         setFormData({
             email: '',
             password: '',
             name: '',
             company: '',
+            company_id: '',
             phone: '',
             role: 'user',
             is_active: true
@@ -114,6 +125,7 @@ export default function UserManagement() {
             password: '',
             name: user.name || '',
             company: user.company || '',
+            company_id: user.company_id || '',
             phone: user.phone || '',
             role: user.role || 'user',
             is_active: user.is_active !== false
@@ -136,6 +148,7 @@ export default function UserManagement() {
             if (modalMode === 'add') {
                 if (!formData.password || formData.password.length < 6) {
                     setError('A senha deve ter pelo menos 6 caracteres');
+                    setLoading(false);
                     return;
                 }
 
@@ -210,6 +223,18 @@ export default function UserManagement() {
     const formatDate = (dateString?: string) => {
         if (!dateString) return 'Nunca';
         return new Date(dateString).toLocaleString('pt-BR');
+    };
+
+    // Handle company selection and update both company_id and company name fields
+    const handleCompanySelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const selectedCompanyId = e.target.value;
+        const selectedCompany = companies.find(company => company.id === selectedCompanyId);
+
+        setFormData(prev => ({
+            ...prev,
+            company_id: selectedCompanyId,
+            company: selectedCompany ? selectedCompany.name : ''
+        }));
     };
 
     return (
@@ -287,14 +312,22 @@ export default function UserManagement() {
                                                     onClick={() => handleEditUser(user)}
                                                     title="Editar"
                                                 >
-                                                    <span className="material-icon">✏️</span>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                                    </svg>
                                                 </button>
                                                 <button
                                                     className="admin-button icon-button danger"
                                                     onClick={() => handleConfirmDelete(user)}
                                                     title="Excluir"
                                                 >
-                                                    <span className="material-icon">🗑️</span>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                                                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                                                    </svg>
                                                 </button>
                                             </div>
                                         </td>
@@ -346,18 +379,29 @@ export default function UserManagement() {
                                         minLength={6}
                                     />
                                     {modalMode === 'add' && (
-                                        <small className="form-hint">Mínimo de 6 caracteres</small>
+                                        <small className="form-help">Mínimo de 6 caracteres</small>
                                     )}
                                 </div>
                             )}
+
+                            <div className="admin-form-group">
+                                <label htmlFor="name">Nome</label>
+                                <input
+                                    type="text"
+                                    id="name"
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleInputChange}
+                                />
+                            </div>
 
                             <div className="admin-form-group">
                                 <label htmlFor="company_id">Empresa</label>
                                 <select
                                     id="company_id"
                                     name="company_id"
-                                    value={formData.company_id || ''}
-                                    onChange={handleInputChange}
+                                    value={formData.company_id}
+                                    onChange={handleCompanySelect}
                                 >
                                     <option value="">Selecione uma empresa</option>
                                     {companies.map(company => (
@@ -366,19 +410,6 @@ export default function UserManagement() {
                                         </option>
                                     ))}
                                 </select>
-                            </div>
-
-                            const [companies, setCompanies] = useState<Company[]>([]);
-
-                            <div className="admin-form-group">
-                                <label htmlFor="company">Empresa</label>
-                                <input
-                                    type="text"
-                                    id="company"
-                                    name="company"
-                                    value={formData.company}
-                                    onChange={handleInputChange}
-                                />
                             </div>
 
                             <div className="admin-form-group">
@@ -407,14 +438,14 @@ export default function UserManagement() {
 
                             {modalMode === 'edit' && (
                                 <div className="admin-form-group checkbox">
-                                    <label>
+                                    <label className="checkbox-container">
                                         <input
                                             type="checkbox"
                                             name="is_active"
                                             checked={formData.is_active}
                                             onChange={handleInputChange}
                                         />
-                                        Usuário ativo
+                                        <span className="checkbox-label">Usuário ativo</span>
                                     </label>
                                 </div>
                             )}

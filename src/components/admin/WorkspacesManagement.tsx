@@ -35,40 +35,16 @@ export default function WorkspacesManagement() {
     const fetchWorkspaces = async () => {
         try {
             setLoading(true);
+            const response = await fetch('/api/admin/workspaces');
 
-            // Simular chamada de API para workspaces
-            // Em produção, substitua por uma chamada real à API
-            setTimeout(() => {
-                const mockWorkspaces: Workspace[] = [
-                    {
-                        id: '1',
-                        name: 'Marketing',
-                        description: 'Workspace para equipe de marketing',
-                        owner: 'Maria Silva',
-                        created_at: '2025-01-15T10:30:00Z',
-                        report_count: 12
-                    },
-                    {
-                        id: '2',
-                        name: 'Vendas',
-                        description: 'Dados e relatórios de vendas',
-                        owner: 'João Costa',
-                        created_at: '2025-02-10T14:20:00Z',
-                        report_count: 8
-                    },
-                    {
-                        id: '3',
-                        name: 'Financeiro',
-                        description: 'KPIs e análises financeiras',
-                        owner: 'Ana Santos',
-                        created_at: '2025-03-05T09:15:00Z',
-                        report_count: 5
-                    }
-                ];
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+            }
 
-                setWorkspaces(mockWorkspaces);
-                setLoading(false);
-            }, 1000);
+            const data = await response.json();
+            setWorkspaces(data);
+            setLoading(false);
         } catch (err: any) {
             setError('Erro ao carregar workspaces: ' + (err.message || 'Falha na requisição'));
             setLoading(false);
@@ -116,37 +92,26 @@ export default function WorkspacesManagement() {
         try {
             setLoading(true);
 
-            // Simular chamada para salvar workspace
-            // Em produção, substitua por uma chamada real à API
-            setTimeout(() => {
-                if (currentWorkspace) {
-                    // Atualização de workspace existente
-                    setWorkspaces(prev =>
-                        prev.map(item =>
-                            item.id === currentWorkspace.id
-                                ? { ...item, ...formData }
-                                : item
-                        )
-                    );
-                    setSuccessMessage('Workspace atualizado com sucesso!');
-                } else {
-                    // Criação de novo workspace
-                    const newWorkspace: Workspace = {
-                        id: Date.now().toString(),
-                        ...formData,
-                        created_at: new Date().toISOString(),
-                        report_count: 0
-                    };
-                    setWorkspaces(prev => [...prev, newWorkspace]);
-                    setSuccessMessage('Workspace criado com sucesso!');
-                }
+            const method = currentWorkspace ? 'PUT' : 'POST';
+            const url = currentWorkspace
+                ? `/api/admin/workspaces/${currentWorkspace.id}`
+                : '/api/admin/workspaces';
 
-                setShowModal(false);
-                setLoading(false);
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
 
-                // Limpar mensagem após alguns segundos
-                setTimeout(() => setSuccessMessage(''), 3000);
-            }, 800);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+            }
+
+            setSuccessMessage(currentWorkspace ? 'Workspace atualizado com sucesso!' : 'Workspace criado com sucesso!');
+            setShowModal(false);
+            await fetchWorkspaces();
+            setTimeout(() => setSuccessMessage(''), 3000);
         } catch (err: any) {
             setError('Erro ao salvar workspace: ' + (err.message || 'Falha na operação'));
             setLoading(false);
@@ -159,17 +124,19 @@ export default function WorkspacesManagement() {
         try {
             setLoading(true);
 
-            // Simular exclusão de workspace
-            // Em produção, substitua por uma chamada real à API
-            setTimeout(() => {
-                setWorkspaces(prev => prev.filter(workspace => workspace.id !== workspaceToDelete.id));
-                setShowDeleteConfirm(false);
-                setSuccessMessage('Workspace excluído com sucesso!');
-                setLoading(false);
+            const response = await fetch(`/api/admin/workspaces/${workspaceToDelete.id}`, {
+                method: 'DELETE'
+            });
 
-                // Limpar mensagem após alguns segundos
-                setTimeout(() => setSuccessMessage(''), 3000);
-            }, 800);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+            }
+
+            setSuccessMessage('Workspace excluído com sucesso!');
+            setShowDeleteConfirm(false);
+            await fetchWorkspaces();
+            setTimeout(() => setSuccessMessage(''), 3000);
         } catch (err: any) {
             setError('Erro ao excluir workspace: ' + (err.message || 'Falha na operação'));
             setLoading(false);
@@ -209,6 +176,17 @@ export default function WorkspacesManagement() {
 
             {loading && workspaces.length === 0 ? (
                 <div className="admin-loading">Carregando workspaces...</div>
+            ) : error ? (
+                <div className="admin-error-display">
+                    <p>Não foi possível carregar os workspaces:</p>
+                    <p>{error}</p>
+                    <button
+                        className="admin-button primary"
+                        onClick={fetchWorkspaces}
+                    >
+                        Tentar novamente
+                    </button>
+                </div>
             ) : (
                 <div className="admin-table-container">
                     <table className="admin-table">
